@@ -1,11 +1,3 @@
-basic.showLeds(`
-    . . . . .
-    . # . # .
-    . . . . .
-    # . . . #
-    . # # # .
-    `);
-
 let me: number;
 let message: string;
 
