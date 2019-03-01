@@ -9,13 +9,16 @@ namespace parties {
     export function me(): number { return 0 }
 
     //% block
+    export function firstGroupMember(): number { return 0 }
+
+    //% block
     export function message(): string { return "" }
 
     //% block
-    export function join_Party(name: string) { }
+    export function joinParty(name: string) { }
 
     //% block
-    export function random_Party_Member(): number {
+    export function randomPartyMember(): number {
         return 0; 
     }
 }
