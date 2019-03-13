@@ -1,7 +1,7 @@
 /**
  * Provides access to communication functionality.
  */
-//% color=90 weight=100
+//% color=#00d3ea weight=100
 
 namespace parties {
 
@@ -9,7 +9,7 @@ namespace parties {
     export function me(): number { return 0 }
 
     //% block
-    export function firstGroupMember(): number { return 0 }
+    export function firstPartyMember(): number { return 0 }
 
     //% block
     export function message(): string { return "" }
@@ -19,6 +19,12 @@ namespace parties {
 
     //% block
     export function randomPartyMember(): number {
-        return 0; 
+        return 0;
     }
+
+    //% block="send %value to %name"
+    export function sendStringTo(value: string, name: number) { }
+
+    //% block="on receive"
+    export function onReceive(f: () => void) { f(); };
 }
