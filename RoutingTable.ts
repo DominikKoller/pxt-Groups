@@ -1,5 +1,7 @@
-namespace Aodv
+namespace Aodv 
 {
+    // See section 2 of the AODV memo for more info: https://tools.ietf.org/html/rfc3561#section-2
+
     /** The routing table; used for storing info about routes to other nodes  */
     type RoutingTable = Route[];
 
