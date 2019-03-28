@@ -3,10 +3,10 @@ namespace Aodv
     // See section 2 of the AODV memo for more info: https://tools.ietf.org/html/rfc3561#section-2
 
     /** The routing table; used for storing info about routes to other nodes  */
-    type RoutingTable = Route[];
+    export type RoutingTable = Route[];
 
     /** Represents a route from this node to another node */
-    class Route 
+    export class Route 
     {
         /** The address of this route's destination node */
         destinationAddress: number;
@@ -33,5 +33,5 @@ namespace Aodv
         // N.B. Haven't implemented 'network interface'. 
     }
 
-    enum RouteState { Valid, Invalid, Repairable, BeingRepaired };
+    export enum RouteState { Valid, Invalid, Repairable, BeingRepaired };
 }

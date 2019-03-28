@@ -9,7 +9,7 @@ namespace Aodv
      * 
      * var wait = ConfigurationParameters.Instance.nextHopWait
      */
-    class ConfigurationParameters 
+    export class ConfigurationParameters 
     {
         /** This member holds the underlying singleton class... */
         private static instance: ConfigurationParameters
