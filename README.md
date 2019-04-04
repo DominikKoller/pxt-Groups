@@ -28,12 +28,12 @@ Read more at https://makecode.microbit.org/packages/build-your-own
  ```
  Looks for an existing party called partyName. Creates a party with name partyName if it doesn't already exist and then joins it.
  ```
- *randomPartyMember: number
+* randomPartyMember: number
  
  ```
  returns the µBit serial number of a random device in the party, which is a unique identifier for that microbit. 
  ```
- *oldestPartyMember: number
+* oldestPartyMember: number
  
  ```
  returns the µBit serial number of the device in the party which has stayed in the party the longest. NB* the time spent in the party is reset to 0 once device leaves.
