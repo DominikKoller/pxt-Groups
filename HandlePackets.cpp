@@ -1,8 +1,6 @@
 #include "pxt.h"
 using namespace pxt;
 
-#include <stdio.h>
-
 enum PacketType {
     RREQ = 6,
     RREP = 7,
