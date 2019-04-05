@@ -10,7 +10,11 @@
         "README.md",
         "main.ts",
         "RoutingTable.ts",
-        "ConfigurationParameters.ts"
+        "ConfigurationParameters.ts",
+        "HandlePackets.cpp",
+        "HandlePackets.ts",
+        "shims.d.ts",
+        "enums.d.ts"
     ],
     "testFiles": [
         "test.ts"
