@@ -46,6 +46,12 @@ declare namespace Aodv {
     function receivedPrefixSize(): number;
 
     /**
+     * Return the rreqid from the last received RREQ packet.
+     */
+    //% shim=Aodv::receivedRREQID
+    function receivedRREQID(): number;
+
+    /**
      * Return the hop count from the last received packet.
      */
     //% shim=Aodv::receivedHopCount

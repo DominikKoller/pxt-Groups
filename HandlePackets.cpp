@@ -9,7 +9,7 @@ enum PacketType {
 };
 
 namespace Aodv {
-
+    
     bool radioEnabled = false;
 
     // Variables storing the data from the most recently received packet
@@ -21,6 +21,8 @@ namespace Aodv {
     uint32_t destSeqNum;
     uint32_t origAddress;
     uint32_t origSeqNum;
+    uint8_t rreqid;
+
 
     int radioEnable() {
         int r = uBit.radio.enable();
@@ -50,7 +52,18 @@ namespace Aodv {
      * Take a buffer and unpack the values inside it into variables.
      */
     // TODO: Implement the rest of these, possibly introducing a few new variables
-    void unpackRREQ(uint8_t* buf) {}
+    void unpackRREQ(uint8_t* buf) {
+        memcpy(&flags,       buf+1,  1);
+        memcpy(&rreqid,  buf+2,  1);
+        memcpy(&hopCount,    buf+3,  1);
+        memcpy(&destAddress, buf+4,  4);
+        memcpy(&destSeqNum,  buf+8,  4);
+        memcpy(&origAddress, buf+12, 4);
+        memcpy(&origSeqNum,  buf+16, 4);
+    
+    }
+    
+    
     void unpackRREP(uint8_t* buf) {
         memcpy(&flags,       buf+1,  1);
         memcpy(&prefixSize,  buf+2,  1);
@@ -60,7 +73,11 @@ namespace Aodv {
         memcpy(&origAddress, buf+12, 4);
         memcpy(&origSeqNum,  buf+16, 4);
     }
-    void unpackRERR(uint8_t* buf) {}
+    void unpackRERR(uint8_t* buf) {
+        memcpy(&flags, buf+1, 1);
+        memcpy(&destAddress, buf+2,  4);
+        memcpy(&destSeqNum, buf+6, 4);
+    }
 
     /**
      * Read a packet from the queue of received packets and extract the
@@ -129,7 +146,16 @@ namespace Aodv {
         if (radioEnable() != MICROBIT_OK) return fromInt(0);
         return fromInt(prefixSize);
     }
-
+    
+    /**
+     * Return the rreqid from the last received RREQ packet.
+     */
+    //%
+    
+    TNumber receivedRREQID() {
+        if (radioEnable() != MICROBIT_OK) return fromInt(0);
+        return fromInt(rreqid);
+    }
     /**
      * Return the hop count from the last received packet.
      */
