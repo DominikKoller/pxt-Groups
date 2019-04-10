@@ -1,9 +1,10 @@
 namespace NNR {
 
     const MAX_HOP_COUNT: int8 = 2;
-    const HEARTBEAT_FREQUENCY = 1000;
+    const HEARTBEAT_FREQUENCY = 200;
+    const KEEP_TIME = 1000;
 
-    const partyTable: PartyTable = [];
+    let partyTable: PartyTable = [];
     let messageId: int8 = 0;
 
     /**
@@ -16,6 +17,7 @@ namespace NNR {
 
     control.inBackground(function () {
         while (true) {
+            partyTable = partyTable.filter(member => member.lastSeen + KEEP_TIME >= input.runningTime());
             sendHeartbeat();
             basic.pause(HEARTBEAT_FREQUENCY);
         }
