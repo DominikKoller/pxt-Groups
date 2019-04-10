@@ -1,5 +1,10 @@
-namespace Aodv
-{
+namespace NNR {
+
+    const MAX_HOP_COUNT: int8 = 2;
+
+    const partyTable: PartyTable = [];
+    let messageId: int8 = 0;
+
     /**
      * Register a callback for the radio packets that will be sent.
      *
@@ -7,38 +12,45 @@ namespace Aodv
      * function with the data in the packet as arguments.
      */
     // TODO: Fill in the arguments for the other calls
+
+    NNR.onDataReceived(() => {
+        basic.showIcon(IconNames.Duck);
+    });
+
+    control.inBackground(function () {
+        basic.pause(500);
+        basic.showIcon(IconNames.Giraffe);
+        basic.pause(500);
+        basic.pause(1500);
+        basic.showIcon(IconNames.EigthNote);
+    });
+
+    function sendDummyNumber() {
+        const buf = pins.createBuffer(1);
+        buf.setNumber(NumberFormat.UInt8LE, 0, 0);
+        sendRawPacket(buf);
+    }
+
+    input.onGesture(Gesture.Shake, function () {
+        sendDummyNumber();
+    });
+
     onDataReceived(() => {
         receivePacket();
         const tp = receivedType();
         switch (tp) {
-            case PacketType.RREQ:
-                handleRREQ(
-                    receivedRREQID(),
-                    receivedFlags(),                    
-                    receivedHopCount(),
-                    receivedDestAddress(),
-                    receivedDestSeqNum(),
+            case PacketType.HEARTBEAT:
+                handleHeartbeat(
+                    receivedMessageId(),
                     receivedOrigAddress(),
-                    receivedOrigSeqNum()
+                    receivedHopCount()
                 );
                 break;
-            case PacketType.RREP:
-                handleRREP(
-                    receivedFlags(),
-                    receivedPrefixSize(),
-                    receivedHopCount(),
-                    receivedDestAddress(),
-                    receivedDestSeqNum(),
-                    receivedOrigAddress(),
-                    receivedOrigSeqNum()
-                );
+            case PacketType.BROADCAST:
+                //          handleBroadcast(/* args */);
                 break;
-            case PacketType.RERR:
-                handleRERR(receivedFlags(), receivedDestAddress(), 
-                receivedDestSeqNum(), );
-                break;
-            case PacketType.RREP_ACK:
-                handleRREP_ACK();
+            case PacketType.UNICAST:
+                // handleUnicast(/* args */);
                 break;
             default: // unknown packet
                 break;
@@ -46,50 +58,26 @@ namespace Aodv
     });
 
     /**
-     * Send the different types of packets for the AODV protocol.
+     * Send the different types of packets for the protocol.
      */
     // TODO: Implement the rest of these
-    export function sendRREQ(rreqid: number, flags: number, hopCount: number, destAddress: number, 
-        destSeqNum: number, origAddress: number, origSeqNum: number) : void {
-        const buf = pins.createBuffer(20);
-        buf.setNumber(NumberFormat.UInt8LE,  0,  PacketType.RREQ);
-        buf.setNumber(NumberFormat.UInt8LE,  1,  flags);
-        buf.setNumber(NumberFormat.UInt8LE,  2,  rreqid);
-        buf.setNumber(NumberFormat.UInt8LE,  3,  hopCount);
-        buf.setNumber(NumberFormat.UInt32LE, 4,  destAddress);
-        buf.setNumber(NumberFormat.UInt32LE, 8,  destSeqNum);
-        buf.setNumber(NumberFormat.UInt32LE, 12, origAddress);
-        buf.setNumber(NumberFormat.UInt32LE, 16, origSeqNum);
-        sendRawPacket(buf);
-    }
-
-
-    export function sendRREP(flags: number, prefixSize: number, hopCount: number,
-                      destAddress: number, destSeqNum: number,
-                      origAddress: number, origSeqNum: number): void {
-        const buf = pins.createBuffer(20);
-        buf.setNumber(NumberFormat.UInt8LE,  0,  PacketType.RREP);
-        buf.setNumber(NumberFormat.UInt8LE,  1,  flags);
-        buf.setNumber(NumberFormat.UInt8LE,  2,  prefixSize);
-        buf.setNumber(NumberFormat.UInt8LE,  3,  hopCount);
-        buf.setNumber(NumberFormat.UInt32LE, 4,  destAddress);
-        buf.setNumber(NumberFormat.UInt32LE, 8,  destSeqNum);
-        buf.setNumber(NumberFormat.UInt32LE, 12, origAddress);
-        buf.setNumber(NumberFormat.UInt32LE, 16, origSeqNum);
-        sendRawPacket(buf);
-    }
-    export function sendRERR(flags:number, unreachableDestAddress: number, unreachableDestSeqNum: number): void {
-        const buf = pins.createBuffer (10);
-        buf.setNumber(NumberFormat.UInt8LE, 0, PacketType.RERR); 
-        buf.setNumber(NumberFormat.UInt8LE,  1,  flags);
-        buf.setNumber(NumberFormat.UInt32LE, 2, unreachableDestAddress);
-        buf.setNumber(NumberFormat.UInt32LE, 6, unreachableDestSeqNum);
-        sendRawPacket(buf);
-    }
-
-
-
-    function sendRREQ_ACK(/* args */) {}
+    function sendRREQ(/* args */) { }
+    // export function sendRREP(flags: number, prefixSize: number, hopCount: number,
+    //     destAddress: number, destSeqNum: number,
+    //     origAddress: number, origSeqNum: number): void {
+    //     const buf = pins.createBuffer(20);
+    //     buf.setNumber(NumberFormat.UInt8LE, 0, PacketType.RREP);
+    //     buf.setNumber(NumberFormat.UInt8LE, 1, flags);
+    //     buf.setNumber(NumberFormat.UInt8LE, 2, prefixSize);
+    //     buf.setNumber(NumberFormat.UInt8LE, 3, hopCount);
+    //     buf.setNumber(NumberFormat.UInt32LE, 4, destAddress);
+    //     buf.setNumber(NumberFormat.UInt32LE, 8, destSeqNum);
+    //     buf.setNumber(NumberFormat.UInt32LE, 12, origAddress);
+    //     buf.setNumber(NumberFormat.UInt32LE, 16, origSeqNum);
+    //     sendRawPacket(buf);
+    // }
+    function sendRERR(/* args */) { }
+    function sendRREQ_ACK(/* args */) { }
 
     /**
      * Functions to handle incoming packets.
@@ -100,20 +88,21 @@ namespace Aodv
      * floating point value, so may not be exact.
      */
     // TODO: Implement all of these, can be moved into separate files if wanted
-    function handleRREQ(rreqid: number, flags: number, hopCount: number, destAddress: number, 
-        destSeqNum: number, origAddress: number, origSeqNum: number) {}
+    function handleHeartbeat(messageId: number, origAddress: number, hopCount: number) {
+        const originator = findAddress(partyTable, origAddress);
 
-
-    function handleRREP(flags: number, prefixSize: number, hopCount: number,
-                        destAddress: number, destSeqNum: number,
-                        origAddress: number, origSeqNum: number) {}
-
-
-    function handleRERR(flags: number, unreachableDestAddress: number, 
-        unreachableDestSeqNum: Number) {
-
+        if (originator == undefined) {
+            partyTable.push(new PartyMember(origAddress, input.runningTime(), messageId));
+            rebound();
         }
+        else if (messageId > originator.lastMessageId) {
+            originator.lastMessageId = messageId;
+            originator.lastSeen = input.runningTime();
+            rebound();
+        }
+    }
 
-
-    function handleRREP_ACK() {}
+    function rebound() {
+        // TODO: check if the last message needs to be redistributed, then redistribute
+    }
 }

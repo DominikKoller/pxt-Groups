@@ -2,27 +2,21 @@
 using namespace pxt;
 
 enum PacketType {
-    RREQ = 6,
-    RREP = 7,
-    RERR = 8,
-    RREP_ACK = 9
+    HEARTBEAT = 6,
+    BROADCAST = 7,
+    UNICAST = 8
 };
 
-namespace Aodv {
-    
+namespace NNR {
+
     bool radioEnabled = false;
 
     // Variables storing the data from the most recently received packet
     uint8_t type;
-    uint8_t flags;
-    uint8_t prefixSize;
-    uint8_t hopCount;
-    uint32_t destAddress;
-    uint32_t destSeqNum;
+    uint8_t messageId;
     uint32_t origAddress;
-    uint32_t origSeqNum;
-    uint8_t rreqid;
-
+    uint32_t destAddress;
+    uint8_t hopCount;
 
     int radioEnable() {
         int r = uBit.radio.enable();
@@ -51,32 +45,12 @@ namespace Aodv {
     /**
      * Take a buffer and unpack the values inside it into variables.
      */
-    // TODO: Implement the rest of these, possibly introducing a few new variables
-    void unpackRREQ(uint8_t* buf) {
-        memcpy(&flags,       buf+1,  1);
-        memcpy(&rreqid,  buf+2,  1);
-        memcpy(&hopCount,    buf+3,  1);
-        memcpy(&destAddress, buf+4,  4);
-        memcpy(&destSeqNum,  buf+8,  4);
-        memcpy(&origAddress, buf+12, 4);
-        memcpy(&origSeqNum,  buf+16, 4);
-    
-    }
-    
-    
-    void unpackRREP(uint8_t* buf) {
-        memcpy(&flags,       buf+1,  1);
-        memcpy(&prefixSize,  buf+2,  1);
-        memcpy(&hopCount,    buf+3,  1);
-        memcpy(&destAddress, buf+4,  4);
-        memcpy(&destSeqNum,  buf+8,  4);
-        memcpy(&origAddress, buf+12, 4);
-        memcpy(&origSeqNum,  buf+16, 4);
-    }
-    void unpackRERR(uint8_t* buf) {
-        memcpy(&flags, buf+1, 1);
-        memcpy(&destAddress, buf+2,  4);
-        memcpy(&destSeqNum, buf+6, 4);
+    void unpackPacket(uint8_t* buf) {
+        memcpy(&type,        buf,    1);
+        memcpy(&messageId,   buf+1,  1);
+        memcpy(&origAddress, buf+2,  4);
+        memcpy(&destAddress, buf+6,  4);
+        memcpy(&hopCount,    buf+10, 1);
     }
 
     /**
@@ -91,22 +65,7 @@ namespace Aodv {
     void receivePacket() {
         PacketBuffer p = uBit.radio.datagram.recv();
         uint8_t* buf = p.getBytes();
-        memcpy(&type, buf, 1);
-        switch (type) {
-            case PacketType::RREQ:
-                unpackRREQ(buf);
-                break;
-            case PacketType::RREP:
-                unpackRREP(buf);
-                break;
-            case PacketType::RERR:
-                unpackRERR(buf);
-                break;
-            case PacketType::RREP_ACK:
-                break;
-            default: // unknown packet
-                return;
-        }
+        unpackPacket(buf);
     }
 
     /**
@@ -116,8 +75,8 @@ namespace Aodv {
      */
     //%
     void onDataReceived(Action body) {
-        if (radioEnable() != MICROBIT_OK) return;
-        registerWithDal(MICROBIT_ID_RADIO, MICROBIT_RADIO_EVT_DATAGRAM, body);
+       if (radioEnable() != MICROBIT_OK) return;
+       registerWithDal(MICROBIT_ID_RADIO, MICROBIT_RADIO_EVT_DATAGRAM, body);
     }
 
     /**
@@ -130,57 +89,12 @@ namespace Aodv {
     }
 
     /**
-     * Return the flags from the last received packet.
+     * Return the message ID from the last received packet.
      */
     //%
-    TNumber receivedFlags() {
+    TNumber receivedMessageId() {
         if (radioEnable() != MICROBIT_OK) return fromInt(0);
-        return fromInt(flags);
-    }
-
-    /**
-     * Return the prefix size from the last received packet.
-     */
-    //%
-    TNumber receivedPrefixSize() {
-        if (radioEnable() != MICROBIT_OK) return fromInt(0);
-        return fromInt(prefixSize);
-    }
-    
-    /**
-     * Return the rreqid from the last received RREQ packet.
-     */
-    //%
-    
-    TNumber receivedRREQID() {
-        if (radioEnable() != MICROBIT_OK) return fromInt(0);
-        return fromInt(rreqid);
-    }
-    /**
-     * Return the hop count from the last received packet.
-     */
-    //%
-    TNumber receivedHopCount() {
-        if (radioEnable() != MICROBIT_OK) return fromInt(0);
-        return fromInt(hopCount);
-    }
-
-    /**
-     * Return the destination address from the last received packet.
-     */
-    //%
-    TNumber receivedDestAddress() {
-        if (radioEnable() != MICROBIT_OK) return fromInt(0);
-        return fromInt(destAddress);
-    }
-
-    /**
-     * Return the destination sequence number from the last received packet.
-     */
-    //%
-    TNumber receivedDestSeqNum() {
-        if (radioEnable() != MICROBIT_OK) return fromInt(0);
-        return fromInt(destSeqNum);
+        return fromInt(messageId);
     }
 
     /**
@@ -192,12 +106,21 @@ namespace Aodv {
         return fromInt(origAddress);
     }
 
-    /**
-     * Return the origin sequence number from the last received packet.
+        /**
+     * Return the destination address from the last received packet.
      */
     //%
-    TNumber receivedOrigSeqNum() {
+    TNumber receivedDestAddress() {
         if (radioEnable() != MICROBIT_OK) return fromInt(0);
-        return fromInt(origSeqNum);
+        return fromInt(destAddress);
+    }
+
+    /**
+     * Return the hop count from the last received packet.
+     */
+    //%
+    TNumber receivedHopCount() {
+        if (radioEnable() != MICROBIT_OK) return fromInt(0);
+        return fromInt(hopCount);
     }
 }
