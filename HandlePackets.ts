@@ -1,6 +1,7 @@
 namespace NNR {
 
     const MAX_HOP_COUNT: int8 = 2;
+    const HEARTBEAT_FREQUENCY = 1000;
 
     const partyTable: PartyTable = [];
     let messageId: int8 = 0;
@@ -13,26 +14,15 @@ namespace NNR {
      */
     // TODO: Fill in the arguments for the other calls
 
-    NNR.onDataReceived(() => {
-        basic.showIcon(IconNames.Duck);
-    });
-
     control.inBackground(function () {
-        basic.pause(500);
-        basic.showIcon(IconNames.Giraffe);
-        basic.pause(500);
-        basic.pause(1500);
-        basic.showIcon(IconNames.EigthNote);
+        while (true) {
+            sendHeartbeat();
+            basic.pause(HEARTBEAT_FREQUENCY);
+        }
     });
 
-    function sendDummyNumber() {
-        const buf = pins.createBuffer(1);
-        buf.setNumber(NumberFormat.UInt8LE, 0, 0);
-        sendRawPacket(buf);
-    }
-
-    input.onGesture(Gesture.Shake, function () {
-        sendDummyNumber();
+    basic.forever(() => {
+        basic.showNumber(partyTable.length);
     });
 
     onDataReceived(() => {
@@ -58,26 +48,20 @@ namespace NNR {
     });
 
     /**
-     * Send the different types of packets for the protocol.
+     * Send the different types of packets for the AODV protocol.
      */
     // TODO: Implement the rest of these
-    function sendRREQ(/* args */) { }
-    // export function sendRREP(flags: number, prefixSize: number, hopCount: number,
-    //     destAddress: number, destSeqNum: number,
-    //     origAddress: number, origSeqNum: number): void {
-    //     const buf = pins.createBuffer(20);
-    //     buf.setNumber(NumberFormat.UInt8LE, 0, PacketType.RREP);
-    //     buf.setNumber(NumberFormat.UInt8LE, 1, flags);
-    //     buf.setNumber(NumberFormat.UInt8LE, 2, prefixSize);
-    //     buf.setNumber(NumberFormat.UInt8LE, 3, hopCount);
-    //     buf.setNumber(NumberFormat.UInt32LE, 4, destAddress);
-    //     buf.setNumber(NumberFormat.UInt32LE, 8, destSeqNum);
-    //     buf.setNumber(NumberFormat.UInt32LE, 12, origAddress);
-    //     buf.setNumber(NumberFormat.UInt32LE, 16, origSeqNum);
-    //     sendRawPacket(buf);
-    // }
-    function sendRERR(/* args */) { }
-    function sendRREQ_ACK(/* args */) { }
+    function sendHeartbeat() {
+        messageId += 1;
+
+        const buf = pins.createBuffer(11);
+        buf.setNumber(NumberFormat.UInt8LE, 0, PacketType.HEARTBEAT);
+        buf.setNumber(NumberFormat.UInt8LE, 1, messageId);
+        buf.setNumber(NumberFormat.UInt32LE, 2, control.deviceSerialNumber());
+        buf.setNumber(NumberFormat.UInt32LE, 6, 0); //destination address
+        buf.setNumber(NumberFormat.UInt8LE, 10, 1); //hop count
+        sendRawPacket(buf);
+    }
 
     /**
      * Functions to handle incoming packets.
