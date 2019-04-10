@@ -1,19 +1,14 @@
-namespace NNR {
+namespace PartiesInternal {
 
-    const MAX_HOP_COUNT: int8 = 2;
-    const HEARTBEAT_FREQUENCY = 200;
-    const KEEP_TIME = 1000;
+    // using consts instead of configuration singleton to save space on device
+    const MAX_HOP_COUNT = 2;
+    const HEARTBEAT_FREQUENCY = 1000;
+    const KEEP_TIME = 7000;
+    const REBOUND_MAXWAIT = 500;
+    const REBOUND_PROBABILITY = 0.9;
 
     let partyTable: PartyTable = [];
-    let messageId: int8 = 0;
-
-    /**
-     * Register a callback for the radio packets that will be sent.
-     *
-     * Checks the type of the packet and calls the corresponding
-     * function with the data in the packet as arguments.
-     */
-    // TODO: Fill in the arguments for the other calls
+    let ownMessageId: int8 = 0;
 
     control.inBackground(function () {
         while (true) {
@@ -23,19 +18,25 @@ namespace NNR {
         }
     });
 
-    basic.forever(() => {
-        basic.showNumber(partyTable.length);
-    });
-
+    /**
+     * Register a callback for the radio packets that will be sent.
+     *
+     * Checks the type of the packet and calls the corresponding
+     * function with the data in the packet as arguments.
+     */
+    // TODO: Fill in the arguments for the other calls
+    // TODO: clean up, call received*() only once
     onDataReceived(() => {
         receivePacket();
+        if (receivedOrigAddress() == control.deviceSerialNumber())
+            return;
+
         const tp = receivedType();
         switch (tp) {
             case PacketType.HEARTBEAT:
                 handleHeartbeat(
                     receivedMessageId(),
-                    receivedOrigAddress(),
-                    receivedHopCount()
+                    receivedOrigAddress()
                 );
                 break;
             case PacketType.BROADCAST:
@@ -50,15 +51,15 @@ namespace NNR {
     });
 
     /**
-     * Send the different types of packets for the AODV protocol.
+     * Send the different types of packets for the protocol.
      */
     // TODO: Implement the rest of these
     function sendHeartbeat() {
-        messageId += 1;
+        ownMessageId += 1;
 
         const buf = pins.createBuffer(11);
         buf.setNumber(NumberFormat.UInt8LE, 0, PacketType.HEARTBEAT);
-        buf.setNumber(NumberFormat.UInt8LE, 1, messageId);
+        buf.setNumber(NumberFormat.UInt8LE, 1, ownMessageId);
         buf.setNumber(NumberFormat.UInt32LE, 2, control.deviceSerialNumber());
         buf.setNumber(NumberFormat.UInt32LE, 6, 0); //destination address
         buf.setNumber(NumberFormat.UInt8LE, 10, 1); //hop count
@@ -74,7 +75,7 @@ namespace NNR {
      * floating point value, so may not be exact.
      */
     // TODO: Implement all of these, can be moved into separate files if wanted
-    function handleHeartbeat(messageId: number, origAddress: number, hopCount: number) {
+    function handleHeartbeat(messageId: number, origAddress: number) {
         const originator = findAddress(partyTable, origAddress);
 
         if (originator == undefined) {
@@ -88,7 +89,32 @@ namespace NNR {
         }
     }
 
+    function handleBroadcast( /*args*/) { }
+
+    function handleUnicast( /*args*/) { }
+
+    // TODO tidy: eg make a packet class, call receivedType() etc only once
     function rebound() {
-        // TODO: check if the last message needs to be redistributed, then redistribute
+        // don't always rebound, to lessen the number of messages in the network
+        // TODO make this a function of the number of nodes in the network
+        if (Math.random() > REBOUND_PROBABILITY) return;
+
+        // Microbits are bad at handling messages coming exactly at the same time
+        basic.pause(Math.randomRange(0, REBOUND_MAXWAIT));
+
+        // check if the last message needs to be redistributed, then redistribute
+        if (receivedHopCount() < MAX_HOP_COUNT) {
+            const buf = pins.createBuffer(11);
+            buf.setNumber(NumberFormat.UInt8LE, 0, receivedType());
+            buf.setNumber(NumberFormat.UInt8LE, 1, receivedMessageId());
+            buf.setNumber(NumberFormat.UInt32LE, 2, receivedOrigAddress());
+            buf.setNumber(NumberFormat.UInt32LE, 6, receivedDestAddress());
+            buf.setNumber(NumberFormat.UInt8LE, 10, receivedHopCount() + 1);
+            sendRawPacket(buf);
+        }
     }
+
+    // Temp
+    // TODO think about how to expose the lib functionality
+    export function numberOfPartyMembers(): number { return partyTable.length; }
 }

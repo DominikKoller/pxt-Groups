@@ -7,7 +7,7 @@ enum PacketType {
     UNICAST = 8
 };
 
-namespace NNR {
+namespace PartiesInternal {
 
     bool radioEnabled = false;
 

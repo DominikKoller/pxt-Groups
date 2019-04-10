@@ -1,4 +1,4 @@
-namespace NNR {
+namespace PartiesInternal {
 
     // TODO make this a hashmap
     export type PartyTable = PartyMember[];
