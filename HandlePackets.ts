@@ -1,7 +1,7 @@
 namespace PartiesInternal {
 
     // using consts instead of configuration singleton to save space on device
-    const MAX_HOP_COUNT = 2;
+    const MAX_HOP_COUNT = 1; //set to 1 to mute rebounds for now TODO: implement rebounds for data packets and set MAX_HOP_COUNT to 2.
     const HEARTBEAT_FREQUENCY = 1000;
     const KEEP_TIME = 7000;
     const REBOUND_MAXWAIT = 500;

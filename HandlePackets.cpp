@@ -10,7 +10,7 @@ enum PacketType {
     UNICAST = 8
 };
 
-//Data Packet Spec : size 28 bytes (maximum possible)
+//Data Packet Spec : size 29 bytes (maximum possible)
 // | 0     | 1 ... 4       | 5 ... 8           | 9       | 10... 28 |
 // ------------------------------------------------------------------
 // | type  | senderID      | receiverID        |hopCount|  payload  |
@@ -25,7 +25,7 @@ enum PacketType {
 namespace PartiesInternal {
 
     bool radioEnabled = false;
-
+    const uint32_t myID = microbit_serial_number();
     // Variables storing the data from the most recently received packet
     uint8_t type;
     uint8_t messageId;
@@ -49,7 +49,7 @@ namespace PartiesInternal {
         }
         return r;
     }
-    /* todo: segue the String datatype to thew c++ string datatype...
+    /* todo: segue the String datatype to the c++ string datatype...
     void _joinParty(String partyName){
         std::hash<std::string> hash_fn;
         int id = hash_fn(partyName)%256;
@@ -66,12 +66,46 @@ namespace PartiesInternal {
     void sendRawPacket(Buffer data) {
         uBit.radio.datagram.send(data->data, data->length);
     }
+    
+    
 
     
     String getStringValue(uint8_t* buf, uint8_t maxLength) {
         // First byte is the string length
         uint8_t len = min_(maxLength, buf[0]); //just incasae user string was initially too big
         return mkString((char*)buf+1, len); //cheeky typecast?
+    }
+    
+    uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
+        uint8_t len = min_(maxLength, data->getUTF8Size());
+        
+        // One byte for length of the string
+        buf[0] = len;
+        
+        if (len > 0) {
+            memcpy(buf + 1, data->getUTF8Data(), len);
+        }
+        return len + 1;
+    }
+    
+    
+    /**
+     * Broadcasts a string to a targeted uBit
+     */
+    void sendString(String msg, uint32_t receiverid ) {
+        if (radioEnable() != MICROBIT_OK || NULL == msg) return;
+        
+        int hc= 1;
+        uint8_t buf[32];
+        memset(buf, 0, 32);
+        buf[0] = PacketType::UNICAST;
+        memcpy(buf+1, &myID, 4);
+        memcpy(buf+5, &receiverid, 4);
+        memcpy(buf+9, &hc, 1);
+        int stringLen = copyStringValue(buf + DATA_PACKET_PREFIX_SIZE, msg, MAX_DATA_PAYLOAD_LENGTH  - 1);
+        
+        uBit.radio.datagram.send(buf, DATA_PACKET_PREFIX_SIZE+ stringLen);
+        
     }
     
     
@@ -84,7 +118,7 @@ namespace PartiesInternal {
         memcpy(&messageId,   buf+1,  1);
         memcpy(&origAddress, buf+2,  4);
         memcpy(&destAddress, buf+6,  4);
-        memcpy(&hopCount,    buf+9, 1);
+        memcpy(&hopCount,    buf+10, 1);
         
     }
 
@@ -136,6 +170,8 @@ namespace PartiesInternal {
        if (radioEnable() != MICROBIT_OK) return;
        registerWithDal(MICROBIT_ID_RADIO, MICROBIT_RADIO_EVT_DATAGRAM, body);
     }
+    
+
 
     /**
      * Return the type of packet that was last received.
