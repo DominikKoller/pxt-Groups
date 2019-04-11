@@ -1,11 +1,26 @@
 #include "pxt.h"
 using namespace pxt;
 
+#define MAX_DATA_PAYLOAD_LENGTH 19
+#define DATA_PACKET_PREFIX_SIZE 10
+
 enum PacketType {
     HEARTBEAT = 6,
     BROADCAST = 7,
     UNICAST = 8
 };
+
+//Data Packet Spec : size 28 bytes (maximum possible)
+// | 0     | 1 ... 4       | 5 ... 8           | 9       | 10... 28 |
+// ------------------------------------------------------------------
+// | type  | senderID      | receiverID        |hopCount|  payload  |
+
+
+//Heart Beat Packet Spec: size 11 bytes
+
+// | 0       | 1        | 2...5       | 6 ... 9     | 10      |
+// -----------------------------------------------------------
+// | type   | messageID | origAddress | destAddress | hopCount |
 
 namespace PartiesInternal {
 
@@ -14,9 +29,11 @@ namespace PartiesInternal {
     // Variables storing the data from the most recently received packet
     uint8_t type;
     uint8_t messageId;
-    uint32_t origAddress;
-    uint32_t destAddress;
+    uint32_t origAddress; //senderID
+    uint32_t destAddress; //receiverID
     uint8_t hopCount;
+    String payloadString; // may be NULL before first packet
+   // int payloadInt;  //for sending ints
 
     int radioEnable() {
         int r = uBit.radio.enable();
@@ -32,6 +49,14 @@ namespace PartiesInternal {
         }
         return r;
     }
+    /* todo: segue the String datatype to thew c++ string datatype...
+    void _joinParty(String partyName){
+        std::hash<std::string> hash_fn;
+        int id = hash_fn(partyName)%256;
+        uBit.radio.setGroup(id);
+    }
+    
+   */
 
     /**
      * Send the data in a buffer on the radio.
@@ -42,17 +67,40 @@ namespace PartiesInternal {
         uBit.radio.datagram.send(data->data, data->length);
     }
 
+    
+    String getStringValue(uint8_t* buf, uint8_t maxLength) {
+        // First byte is the string length
+        uint8_t len = min_(maxLength, buf[0]); //just incasae user string was initially too big
+        return mkString((char*)buf+1, len); //cheeky typecast?
+    }
+    
+    
+    
     /**
-     * Take a buffer and unpack the values inside it into variables.
+     * Take a heartbeat buffer and unpack the values inside it into variables.
      */
-    void unpackPacket(uint8_t* buf) {
-        memcpy(&type,        buf,    1);
+    void unpackHrtBtPacket(uint8_t* buf) {
+        
         memcpy(&messageId,   buf+1,  1);
         memcpy(&origAddress, buf+2,  4);
         memcpy(&destAddress, buf+6,  4);
-        memcpy(&hopCount,    buf+10, 1);
+        memcpy(&hopCount,    buf+9, 1);
+        
     }
 
+    /**
+     * Take a data buffer and unpack the values inside it into variables.
+     */
+    void unpackDataPacket(uint8_t* buf) {
+        
+        
+        memcpy(&origAddress, buf+1,  4);
+        memcpy(&destAddress, buf+5,  4);
+        memcpy(&hopCount,    buf+10, 1);
+        payloadString = getStringValue(buf+DATA_PACKET_PREFIX_SIZE, MAX_DATA_PAYLOAD_LENGTH-1 );
+    }
+    
+    
     /**
      * Read a packet from the queue of received packets and extract the
      * relevant data from it.
@@ -65,7 +113,17 @@ namespace PartiesInternal {
     void receivePacket() {
         PacketBuffer p = uBit.radio.datagram.recv();
         uint8_t* buf = p.getBytes();
-        unpackPacket(buf);
+        memcpy(&type,        buf,    1); //unwrapping initiates by extracting type
+        switch (type){ //different unwrapping procedures for different packets
+            case PacketType::HEARTBEAT:
+                unpackHrtBtPacket(buf);
+                break;
+            case PacketType::BROADCAST:
+                unpackDataPacket(buf);
+                break;
+            default: break;
+        }
+        
     }
 
     /**
@@ -123,4 +181,14 @@ namespace PartiesInternal {
         if (radioEnable() != MICROBIT_OK) return fromInt(0);
         return fromInt(hopCount);
     }
+    
+    /**
+     * Return the string payload from the last received packet.
+     */
+    //%
+    String receivedString() {
+        if (radioEnable() != MICROBIT_OK || NULL == payloadString) return mkString("", 0);
+        return payloadString;
+    }
+
 }

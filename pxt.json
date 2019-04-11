@@ -9,8 +9,7 @@
     "files": [
         "README.md",
         "main.ts",
-        "RoutingTable.ts",
-        "ConfigurationParameters.ts",
+        "PartyTable.ts",
         "HandlePackets.cpp",
         "HandlePackets.ts",
         "shims.d.ts",

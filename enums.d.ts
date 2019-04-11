@@ -2,10 +2,9 @@
 
 
     declare const enum PacketType {
-    RREQ = 6,
-    RREP = 7,
-    RERR = 8,
-    RREP_ACK = 9,
+    HEARTBEAT = 6,
+    BROADCAST = 7,
+    UNICAST = 8,
     }
 
 // Auto-generated. Do not edit. Really.

@@ -18,6 +18,38 @@ namespace PartiesInternal {
         }
     });
 
+    
+    export class Packet {
+
+        /**
+         * The number payload if a number was sent in this packet (via `` ``)
+         * or 0 if this packet did not contain a number.
+         */
+        public receivedNumber: number;
+        /**
+         * The string payload if a string was sent in this packet (via `` ``)
+         * or the empty string if this packet did not contain a string.
+         */        
+        public receivedString: string;
+        /**
+         * The uBit serial of the sender...
+         */
+        public senderID: number; 
+        /**The uBit serial of the intended receiver */
+        public receiverID: number; 
+        /**The number of times the specific packet has been emitted */
+        public hopCount: number;
+
+
+ }
+
+    /**Allows user to tell uBit the name of desired party to be joined 
+
+    export function joinParty(partyName: string) {
+        _joinParty(partyName)
+    }
+*/
+
     /**
      * Register a callback for the radio packets that will be sent.
      *
@@ -27,11 +59,12 @@ namespace PartiesInternal {
     // TODO: Fill in the arguments for the other calls
     // TODO: clean up, call received*() only once
     onDataReceived(() => {
-        receivePacket();
+        receivePacket(); 
         if (receivedOrigAddress() == control.deviceSerialNumber())
             return;
 
         const tp = receivedType();
+
         switch (tp) {
             case PacketType.HEARTBEAT:
                 handleHeartbeat(
@@ -43,7 +76,7 @@ namespace PartiesInternal {
                 //          handleBroadcast(/* args */);
                 break;
             case PacketType.UNICAST:
-                // handleUnicast(/* args */);
+                handleUnicast(receivedString(), receivedOrigAddress(), receivedDestAddress(), receivedHopCount() )
                 break;
             default: // unknown packet
                 break;
@@ -75,6 +108,7 @@ namespace PartiesInternal {
      * floating point value, so may not be exact.
      */
     // TODO: Implement all of these, can be moved into separate files if wanted
+
     function handleHeartbeat(messageId: number, origAddress: number) {
         const originator = findAddress(partyTable, origAddress);
 
@@ -91,7 +125,17 @@ namespace PartiesInternal {
 
     function handleBroadcast( /*args*/) { }
 
-    function handleUnicast( /*args*/) { }
+/** Handles incoming data packet by wrapping up its contents in the Packet class. Rejects the incoming data if it's not intended for this device. */
+//maybe a bit too OO for now...
+    function handleUnicast( receivedString: string, senderID: number, receiverID: number, hopCount: number) : Packet{
+        if (receiverID != control.deviceSerialNumber() ) return null;
+        const packet = new Packet();
+        packet.receiverID = receiverID;
+        packet.receivedString = receivedString;
+        packet.senderID = senderID;
+        packet.hopCount = hopCount; 
+        return packet;
+     }
 
     // TODO tidy: eg make a packet class, call receivedType() etc only once
     function rebound() {

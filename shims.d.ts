@@ -1,11 +1,11 @@
 // Auto-generated. Do not edit.
-declare namespace Aodv {
+declare namespace PartiesInternal {
 
     /**
      * Send the data in a buffer on the radio.
      * Note: The buffer must have length <= 28
      */
-    //% shim=Aodv::sendRawPacket
+    //% shim=PartiesInternal::sendRawPacket
     function sendRawPacket(data: Buffer): void;
 
     /**
@@ -16,7 +16,7 @@ declare namespace Aodv {
      * type of packet that is received, then calls to `received*()` to get the
      * rest of the data in the packet.
      */
-    //% shim=Aodv::receivePacket
+    //% shim=PartiesInternal::receivePacket
     function receivePacket(): void;
 
     /**
@@ -24,62 +24,44 @@ declare namespace Aodv {
      * Note: Only one function can be registered at once, so the radio module
      * will have to be disabled.
      */
-    //% shim=Aodv::onDataReceived
+    //% shim=PartiesInternal::onDataReceived
     function onDataReceived(body: () => void): void;
 
     /**
      * Return the type of packet that was last received.
      */
-    //% shim=Aodv::receivedType
+    //% shim=PartiesInternal::receivedType
     function receivedType(): number;
 
     /**
-     * Return the flags from the last received packet.
+     * Return the message ID from the last received packet.
      */
-    //% shim=Aodv::receivedFlags
-    function receivedFlags(): number;
-
-    /**
-     * Return the prefix size from the last received packet.
-     */
-    //% shim=Aodv::receivedPrefixSize
-    function receivedPrefixSize(): number;
-
-    /**
-     * Return the rreqid from the last received RREQ packet.
-     */
-    //% shim=Aodv::receivedRREQID
-    function receivedRREQID(): number;
-
-    /**
-     * Return the hop count from the last received packet.
-     */
-    //% shim=Aodv::receivedHopCount
-    function receivedHopCount(): number;
-
-    /**
-     * Return the destination address from the last received packet.
-     */
-    //% shim=Aodv::receivedDestAddress
-    function receivedDestAddress(): number;
-
-    /**
-     * Return the destination sequence number from the last received packet.
-     */
-    //% shim=Aodv::receivedDestSeqNum
-    function receivedDestSeqNum(): number;
+    //% shim=PartiesInternal::receivedMessageId
+    function receivedMessageId(): number;
 
     /**
      * Return the origin address from the last received packet.
      */
-    //% shim=Aodv::receivedOrigAddress
+    //% shim=PartiesInternal::receivedOrigAddress
     function receivedOrigAddress(): number;
 
     /**
-     * Return the origin sequence number from the last received packet.
+     * Return the destination address from the last received packet.
      */
-    //% shim=Aodv::receivedOrigSeqNum
-    function receivedOrigSeqNum(): number;
+    //% shim=PartiesInternal::receivedDestAddress
+    function receivedDestAddress(): number;
+
+    /**
+     * Return the hop count from the last received packet.
+     */
+    //% shim=PartiesInternal::receivedHopCount
+    function receivedHopCount(): number;
+
+    /**
+     * Return the string payload from the last received packet.
+     */
+    //% shim=PartiesInternal::receivedString
+    function receivedString(): string;
 }
 
 // Auto-generated. Do not edit. Really.
