@@ -68,8 +68,6 @@ namespace PartiesInternal {
     }
     
     
-
-    
     String getStringValue(uint8_t* buf, uint8_t maxLength) {
         // First byte is the string length
         uint8_t len = min_(maxLength, buf[0]); //just incasae user string was initially too big
@@ -92,49 +90,45 @@ namespace PartiesInternal {
     /**
      * Broadcasts a string to a targeted uBit
      */
+    //%
     void sendString(String msg, uint32_t receiverid ) {
         if (radioEnable() != MICROBIT_OK || NULL == msg) return;
         
-        int hc= 1;
         uint8_t buf[32];
+        uint8_t hopCount = 1;
+
         memset(buf, 0, 32);
         buf[0] = PacketType::UNICAST;
         memcpy(buf+1, &myID, 4);
         memcpy(buf+5, &receiverid, 4);
-        memcpy(buf+9, &hc, 1);
+        memcpy(buf+9, &hopCount, 1);
         int stringLen = copyStringValue(buf + DATA_PACKET_PREFIX_SIZE, msg, MAX_DATA_PAYLOAD_LENGTH  - 1);
         
-        uBit.radio.datagram.send(buf, DATA_PACKET_PREFIX_SIZE+ stringLen);
-        
+        uBit.radio.datagram.send(buf, DATA_PACKET_PREFIX_SIZE + stringLen);
     }
-    
-    
+
     
     /**
      * Take a heartbeat buffer and unpack the values inside it into variables.
      */
     void unpackHrtBtPacket(uint8_t* buf) {
-        
         memcpy(&messageId,   buf+1,  1);
         memcpy(&origAddress, buf+2,  4);
         memcpy(&destAddress, buf+6,  4);
         memcpy(&hopCount,    buf+10, 1);
-        
     }
 
     /**
      * Take a data buffer and unpack the values inside it into variables.
      */
     void unpackDataPacket(uint8_t* buf) {
-        
-        
         memcpy(&origAddress, buf+1,  4);
         memcpy(&destAddress, buf+5,  4);
-        memcpy(&hopCount,    buf+10, 1);
+        memcpy(&hopCount,    buf+9, 1);
         payloadString = getStringValue(buf+DATA_PACKET_PREFIX_SIZE, MAX_DATA_PAYLOAD_LENGTH-1 );
     }
     
-    
+
     /**
      * Read a packet from the queue of received packets and extract the
      * relevant data from it.
@@ -152,13 +146,13 @@ namespace PartiesInternal {
             case PacketType::HEARTBEAT:
                 unpackHrtBtPacket(buf);
                 break;
-            case PacketType::BROADCAST:
+            case PacketType::UNICAST:
                 unpackDataPacket(buf);
                 break;
             default: break;
         }
-        
     }
+
 
     /**
      * Register a function to be called when a radio packet is received
@@ -171,7 +165,6 @@ namespace PartiesInternal {
        registerWithDal(MICROBIT_ID_RADIO, MICROBIT_RADIO_EVT_DATAGRAM, body);
     }
     
-
 
     /**
      * Return the type of packet that was last received.
@@ -200,7 +193,7 @@ namespace PartiesInternal {
         return fromInt(origAddress);
     }
 
-        /**
+    /**
      * Return the destination address from the last received packet.
      */
     //%

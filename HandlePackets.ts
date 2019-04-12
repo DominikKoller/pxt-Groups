@@ -10,6 +10,8 @@ namespace PartiesInternal {
     let partyTable: PartyTable = [];
     let ownMessageId: int8 = 0;
 
+    let stringCallback: (s: string) => void;
+
     control.inBackground(function () {
         while (true) {
             partyTable = partyTable.filter(member => member.lastSeen + KEEP_TIME >= input.runningTime());
@@ -50,6 +52,15 @@ namespace PartiesInternal {
     }
 */
 
+    export function onStringReceived(c: (receivedString: string) => void) {
+        stringCallback = c;
+    }
+
+    export function randomPartyMember(): number {
+        if (partyTable.length > 0) return partyTable[0].address;
+        else return -1;
+    }
+
     /**
      * Register a callback for the radio packets that will be sent.
      *
@@ -58,6 +69,7 @@ namespace PartiesInternal {
      */
     // TODO: Fill in the arguments for the other calls
     // TODO: clean up, call received*() only once
+    // TODO: put this all in the cpp code!
     onDataReceived(() => {
         receivePacket(); 
         if (receivedOrigAddress() == control.deviceSerialNumber())
@@ -111,7 +123,7 @@ namespace PartiesInternal {
 
     function handleHeartbeat(messageId: number, origAddress: number) {
         const originator = findAddress(partyTable, origAddress);
-
+        
         if (originator == undefined) {
             partyTable.push(new PartyMember(origAddress, input.runningTime(), messageId));
             rebound();
@@ -127,27 +139,33 @@ namespace PartiesInternal {
 
 /** Handles incoming data packet by wrapping up its contents in the Packet class. Rejects the incoming data if it's not intended for this device. */
 //maybe a bit too OO for now...
-    function handleUnicast( receivedString: string, senderID: number, receiverID: number, hopCount: number) : Packet{
-        if (receiverID != control.deviceSerialNumber() ) return null;
+    function handleUnicast( receivedString: string, senderID: number, receiverID: number, hopCount: number): void {
+        
+        if (receiverID != control.deviceSerialNumber() ) {
+            return;
+        }
+
         const packet = new Packet();
         packet.receiverID = receiverID;
         packet.receivedString = receivedString;
         packet.senderID = senderID;
         packet.hopCount = hopCount; 
-        return packet;
+        
+        stringCallback(receivedString);
+        //return packet;
      }
 
     // TODO tidy: eg make a packet class, call receivedType() etc only once
     function rebound() {
-        // don't always rebound, to lessen the number of messages in the network
-        // TODO make this a function of the number of nodes in the network
-        if (Math.random() > REBOUND_PROBABILITY) return;
-
-        // Microbits are bad at handling messages coming exactly at the same time
-        basic.pause(Math.randomRange(0, REBOUND_MAXWAIT));
-
         // check if the last message needs to be redistributed, then redistribute
         if (receivedHopCount() < MAX_HOP_COUNT) {
+            // don't always rebound, to lessen the number of messages in the network
+            // TODO make this a function of the number of nodes in the network
+            if (Math.random() > REBOUND_PROBABILITY) return;
+
+            // Microbits are bad at handling messages coming exactly at the same time
+            basic.pause(Math.randomRange(0, REBOUND_MAXWAIT));
+
             const buf = pins.createBuffer(11);
             buf.setNumber(NumberFormat.UInt8LE, 0, receivedType());
             buf.setNumber(NumberFormat.UInt8LE, 1, receivedMessageId());
