@@ -57,7 +57,9 @@ namespace PartiesInternal {
     }
 
     export function randomPartyMember(): number {
-        if (partyTable.length > 0) return partyTable[0].address;
+        if (partyTable.length > 0) {
+            return partyTable[Math.randomRange(0, partyTable.length - 1)].address;
+        }
         else return -1;
     }
 
