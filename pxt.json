@@ -9,7 +9,6 @@
     "files": [
         "README.md",
         "main.ts",
-        "PartyTable.ts",
         "HandlePackets.cpp",
         "HandlePackets.ts",
         "shims.d.ts",

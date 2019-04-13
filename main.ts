@@ -5,14 +5,6 @@
 
 namespace parties {
 
-    input.onButtonPressed(Button.A, function () {
-        let r = PartiesInternal.randomPartyMember();
-        basic.showNumber(r);
-        PartiesInternal.sendString("hello", r);
-    });
-
-    PartiesInternal.onStringReceived(c => basic.showString(c));
-
     //% block
     export function me(): number { return 0 }
 
