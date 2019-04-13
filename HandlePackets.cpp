@@ -55,7 +55,9 @@ namespace PartiesInternal {
         uBit.radio.datagram.send(data->data, data->length);
     }
     
-    
+    void receiveHeartbeat(Prefix prefix, uint8_t* buf){
+        
+    }
 
     /**
      * Read a packet from the queue of received packets and extract the
@@ -69,6 +71,23 @@ namespace PartiesInternal {
     void receiveData() {
         PacketBuffer p = uBit.radio.datagram.recv();
         uint8_t* buf = p.getBytes();
+
+        Prefix prefix;
+        memcpy(&(prefix.type),        buf,    1);
+        memcpy(&(prefix.messageId),   buf+1,  1);
+        memcpy(&(prefix.origAddress), buf+2,  4);
+        memcpy(&(prefix.destAddress), buf+6,  4);
+        memcpy(&(prefix.hopCount),    buf+10, 1);
+
+        if (prefix.origAddress == microbit_serial_number()) return;
+
+        switch(prefix.type)
+        {
+            case PacketType::HEARTBEAT:
+                receiveHeartbeat(prefix, buf);
+                break;
+            default: break;
+        }
     }
 
     void setPacketPrefix(uint8_t* buf, Prefix prefix) {
@@ -97,6 +116,8 @@ namespace PartiesInternal {
         setPacketPrefix(buf, prefix);
         uBit.radio.datagram.send(buf, PREFIX_LENGTH);
     }
+
+    
 
     /**
      * Use this only to call receiveData from Typescript
