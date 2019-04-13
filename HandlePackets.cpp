@@ -1,4 +1,6 @@
 #include "pxt.h"
+#include <algorithm>
+#include <vector>
 using namespace pxt;
 
 #define MAX_DATA_PAYLOAD_LENGTH 19
@@ -6,22 +8,13 @@ using namespace pxt;
 
 enum PacketType {
     HEARTBEAT = 6,
-    BROADCAST = 7,
-    UNICAST_STRING = 8,
-    UNICAST_NUMBER = 9
 };
 
-//Data Packet Spec : size 29 bytes (maximum possible)
-// | 0     | 1 ... 4       | 5 ... 8           | 9       | 10... 28 |
-// ------------------------------------------------------------------
-// | type  | senderID      | receiverID        |hopCount|  payload  |
+// Packet Spec
 
-
-//Heart Beat Packet Spec: size 11 bytes
-
-// | 0       | 1        | 2...5       | 6 ... 9     | 10      |
-// -----------------------------------------------------------
-// | type   | messageID | origAddress | destAddress | hopCount |
+// | 0       | 1        | 2...5       | 6 ... 9     | 10       | 11... 28 |
+// ------------------------------------------------------------------------
+// | type   | messageID | origAddress | destAddress | hopCount | payload  |
 
 namespace PartiesInternal {
 
