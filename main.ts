@@ -9,6 +9,10 @@ namespace parties {
         basic.showNumber(PartiesInternal.numberOfPartyMembers());
     });
 
+    PartiesInternal.onStringReceived((s: string) => basic.showString(s));
+
+    input.onButtonPressed(Button.A, () => PartiesInternal.sendString("hello", PartiesInternal.randomPartyMember()));
+
     //% block
     export function me(): number { return 0 }
 
