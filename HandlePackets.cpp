@@ -14,6 +14,7 @@ using namespace pxt;
 
 enum PacketType {
     HEARTBEAT = 6,
+    UNICAST_STRING = 7
 };
 
 struct Prefix {
@@ -30,6 +31,9 @@ struct PartyMember {
     uint8_t lastMessageId;
 };
 
+struct Payload {};
+struct StringPayload : Payload { String value; };
+
 // Packet Spec
 
 // | 0       | 1        | 2...5       | 6 ... 9     | 10       | 11... 28 |
@@ -43,6 +47,8 @@ namespace PartiesInternal {
     uint8_t ownMessageId = 0;
 
     std::vector<PartyMember> partyTable;
+
+    Payload lastPayload;
 
     int radioEnable() {
         int r = uBit.radio.enable();
@@ -96,13 +102,15 @@ namespace PartiesInternal {
         }
     }
 
+    void receiveUnicast(Prefix prefix, uint8_t* buf) {
+        if(prefix.destAddress != microbit_serial_number()){
+            rebound(prefix, buf);
+            return;
+        }
+    }
+
     /**
-     * Read a packet from the queue of received packets and extract the
-     * relevant data from it.
-     *
-     * A call to this function will be followed by `receivedType()` to get the
-     * type of packet that is received, then calls to `received*()` to get the
-     * rest of the data in the packet.
+     * Read a packet from the queue of received packets and react accordingly
      */
     //%
     void receiveData() {
@@ -123,6 +131,8 @@ namespace PartiesInternal {
             case PacketType::HEARTBEAT:
                 receiveHeartbeat(prefix, buf);
                 break;
+            case PacketType::UNICAST_STRING:
+                receiveUnicast(prefix, buf);
             default: break;
         }
     }
@@ -155,7 +165,6 @@ namespace PartiesInternal {
     }
 
     
-
     /**
      * Use this only to call receiveData from Typescript
      * (workaround, cannot figure out how to pass c++ function to registerWithDal)
