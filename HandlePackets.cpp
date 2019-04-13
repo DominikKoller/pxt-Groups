@@ -24,6 +24,12 @@ struct Prefix {
     uint8_t hopCount;
 };
 
+struct PartyMember {
+    uint32_t address;
+    uint32_t lastSeen;
+    uint8_t lastMessageId;
+};
+
 // Packet Spec
 
 // | 0       | 1        | 2...5       | 6 ... 9     | 10       | 11... 28 |
@@ -35,6 +41,8 @@ namespace PartiesInternal {
     bool radioEnabled = false;
 
     uint8_t ownMessageId = 0;
+
+    std::vector<PartyMember> partyTable;
 
     int radioEnable() {
         int r = uBit.radio.enable();
