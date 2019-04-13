@@ -26,15 +26,6 @@ enum PacketType {
 namespace PartiesInternal {
 
     bool radioEnabled = false;
-    const uint32_t myID = microbit_serial_number();
-    // Variables storing the data from the most recently received packet
-    uint8_t type;
-    uint8_t messageId;
-    uint32_t origAddress; //senderID
-    uint32_t destAddress; //receiverID
-    uint8_t hopCount;
-    String payloadString; // may be NULL before first packet
-    int payloadInt = 0;
 
     int radioEnable() {
         int r = uBit.radio.enable();
@@ -50,14 +41,6 @@ namespace PartiesInternal {
         }
         return r;
     }
-    /* todo: segue the String datatype to the c++ string datatype...
-    void _joinParty(String partyName){
-        std::hash<std::string> hash_fn;
-        int id = hash_fn(partyName)%256;
-        uBit.radio.setGroup(id);
-    }
-    
-   */
 
     /**
      * Send the data in a buffer on the radio.
@@ -66,122 +49,6 @@ namespace PartiesInternal {
     //%
     void sendRawPacket(Buffer data) {
         uBit.radio.datagram.send(data->data, data->length);
-    }
-    
-    
-    String getStringValue(uint8_t* buf, uint8_t maxLength) {
-        // First byte is the string length
-        uint8_t len = min_(maxLength, buf[0]); //just in case user string was initially too big
-        return mkString((char*)buf+1, len); //cheeky typecast?
-    }
-    
-    uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
-        uint8_t len = min_(maxLength, data->getUTF8Size());
-        
-        // One byte for length of the string
-        buf[0] = len;
-        
-        if (len > 0) {
-            memcpy(buf + 1, data->getUTF8Data(), len);
-        }
-        return len + 1;
-    }
-    
-    
-    void unpackPayLoadString(uint8_t* buf){
-        payloadString = getStringValue(buf+DATA_PACKET_PREFIX_SIZE, MAX_DATA_PAYLOAD_LENGTH-1 );
-    }
-    
-    void unpackPayloadNumber(uint8_t* buf){
-        memcpy(&payloadInt, buf+DATA_PACKET_PREFIX_SIZE, MAX_DATA_PAYLOAD_LENGTH);
-    }
-    
-    
-    /** Initialises prefix of packet to be sent*/
-    
-    void setPacketPrefix(uint8_t buf[], uint32_t receiverid, PacketType type) {
-        int8_t hopCount = 1;
-        buf[0] = type;
-        memcpy(buf+1, &myID, 4);
-        memcpy(buf+5, &receiverid, 4);
-        memcpy(buf+9, &hopCount, 1);
-    }
-    
-    /**
-     * Broadcasts a string to a targeted uBit
-     */
-    //%
-    void sendString(String msg, uint32_t receiverid ) {
-        if (radioEnable() != MICROBIT_OK || NULL == msg) return;
-        
-        uint8_t buf[32];
-        uint8_t hopCount = 1;
-
-        memset(buf, 0, 32);
-        setPacketPrefix(buf, receiverid, PacketType::UNICAST_STRING);
-        int stringLen = copyStringValue(buf + DATA_PACKET_PREFIX_SIZE, msg, MAX_DATA_PAYLOAD_LENGTH  - 1);
-        
-        uBit.radio.datagram.send(buf, DATA_PACKET_PREFIX_SIZE + stringLen);
-    }
-    
-    
-    /**
-     * Broadcasts a string to a targeted uBit
-     */
-    //%
-    
-    void sendNumber(TNumber value, uint32_t receiverid) {
-        if (radioEnable() != MICROBIT_OK) return;
-        
-        int iv = toInt(value);
-        double dv = toDouble(value);
-        if (iv == dv) {
-            uint8_t length = DATA_PACKET_PREFIX_SIZE + sizeof(int);
-            uint8_t buf[length];
-            memset(buf, 0, length);
-            setPacketPrefix(buf, receiverid, PacketType::UNICAST_NUMBER);
-            memcpy(buf + DATA_PACKET_PREFIX_SIZE, &iv, sizeof(int));
-            uBit.radio.datagram.send(buf, length);
-        } else {
-            uint8_t length = DATA_PACKET_PREFIX_SIZE + sizeof(double);
-            uint8_t buf[length];
-            memset(buf, 0, length);
-            setPacketPrefix(buf, receiverid, PacketType::UNICAST_NUMBER);
-            memcpy(buf + DATA_PACKET_PREFIX_SIZE, &dv, sizeof(double));
-            uBit.radio.datagram.send(buf, length);
-        }
-    }
-    
-    
-    /**
-     * Take a heartbeat buffer and unpack the values inside it into variables.
-     */
-    void unpackHrtBtPacket(uint8_t* buf) {
-        memcpy(&messageId,   buf+1,  1);
-        memcpy(&origAddress, buf+2,  4);
-        memcpy(&destAddress, buf+6,  4);
-        memcpy(&hopCount,    buf+10, 1);
-    }
-
-    /**
-     * Take a data buffer and unpack the values inside it into variables.
-     */
-    void unpackDataPacket(uint8_t* buf) {
-        memcpy(&origAddress, buf+1,  4);
-        memcpy(&destAddress, buf+5,  4);
-        memcpy(&hopCount,    buf+9, 1);
-        //now to extract the payload depending on the type
-        switch (type){
-            case PacketType::UNICAST_STRING:
-                unpackPayLoadString(buf);
-                break;
-            case PacketType::UNICAST_NUMBER:
-                unpackPayloadNumber(buf);
-                break;
-            default:
-                break;
-                
-        }
     }
     
 
@@ -197,17 +64,5 @@ namespace PartiesInternal {
     void receivePacket() {
         PacketBuffer p = uBit.radio.datagram.recv();
         uint8_t* buf = p.getBytes();
-        memcpy(&type,        buf,    1); //unwrapping initiates by extracting type
-        switch (type){ //different unwrapping procedures for different packets
-            case PacketType::HEARTBEAT:
-                unpackHrtBtPacket(buf);
-                break;
-            case PacketType::UNICAST_STRING:
-            case PacketType::UNICAST_NUMBER:
-                unpackDataPacket(buf);
-                break;
-                
-            default: break;
-        }
     }
 }
