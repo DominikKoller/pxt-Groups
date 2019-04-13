@@ -6,11 +6,11 @@ using namespace pxt;
 #define MAX_PAYLOAD_LENGTH 19
 #define PREFIX_LENGTH 10
 
-#define MAX_HOP_COUNT = 1;
-#define HEARTBEAT_FREQUENCY = 1000;
-#define KEEP_TIME = 7000;
-#define REBOUND_MAXWAIT = 500;
-#define REBOUND_PROBABILITY = 0.9;
+#define MAX_HOP_COUNT 1;
+#define HEARTBEAT_FREQUENCY 1000;
+#define KEEP_TIME 7000;
+#define REBOUND_MAXWAIT 500;
+#define REBOUND_PROBABILITY 0.9;
 
 enum PacketType {
     HEARTBEAT = 6,
@@ -79,10 +79,28 @@ namespace PartiesInternal {
         memcpy(buf+10,  &(prefix.hopCount), 1);
     }
 
+    /** 
+     * To be called at Heartbeat Frequency
+     */
     //%
     void sendHeartbeat(){
         ownMessageId++;
 
+        uint8_t buf[PREFIX_LENGTH];
+        Prefix prefix;
+        prefix.type         = PacketType::HEARTBEAT;
+        prefix.messageId    = ownMessageId;
+        prefix.origAddress  = microbit_serial_number();
+        prefix.destAddress  = 0;
+        prefix.hopCount     = 1;
+
+        setPacketPrefix(buf, prefix);
+        uBit.radio.datagram.send(buf, PREFIX_LENGTH);
     }
 
+    /**
+     * Use as frequency to call sendHeartbeat
+     */
+    //%
+    int getHeartbeatFrequency(){ return HEARTBEAT_FREQUENCY; }
 }
