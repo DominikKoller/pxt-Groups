@@ -3,8 +3,8 @@
 #include <vector>
 using namespace pxt;
 
-#define MAX_DATA_PAYLOAD_LENGTH 19
-#define DATA_PACKET_PREFIX_SIZE 10
+#define MAX_PAYLOAD_LENGTH 19
+#define PREFIX_LENGTH 10
 
 enum PacketType {
     HEARTBEAT = 6,
