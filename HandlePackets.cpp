@@ -66,7 +66,7 @@ namespace PartiesInternal {
      * rest of the data in the packet.
      */
     //%
-    void receivePacket() {
+    void receiveData() {
         PacketBuffer p = uBit.radio.datagram.recv();
         uint8_t* buf = p.getBytes();
     }
@@ -96,6 +96,18 @@ namespace PartiesInternal {
 
         setPacketPrefix(buf, prefix);
         uBit.radio.datagram.send(buf, PREFIX_LENGTH);
+    }
+
+    /**
+     * Use this only to call receiveData from Typescript
+     * (workaround, cannot figure out how to pass c++ function to registerWithDal)
+     * Note: Only one function can be registered at once, so the radio module
+     * will have to be disabled.
+     */
+    //%
+    void onDataReceived(Action body) {
+       if (radioEnable() != MICROBIT_OK) return;
+       registerWithDal(MICROBIT_ID_RADIO, MICROBIT_RADIO_EVT_DATAGRAM, body);
     }
 
     /**
