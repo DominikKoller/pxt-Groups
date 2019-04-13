@@ -100,10 +100,10 @@ namespace PartiesInternal {
     /** Initialises prefix of packet to be sent*/
     
     void setPacketPrefix(uint8_t buf[], uint32_t receiverid, PacketType type) {
+        int8_t hopCount = 1;
         buf[0] = type;
         memcpy(buf+1, &myID, 4);
         memcpy(buf+5, &receiverid, 4);
-        hopCount = 1;
         memcpy(buf+9, &hopCount, 1);
     }
     
