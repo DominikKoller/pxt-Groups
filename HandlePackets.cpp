@@ -10,6 +10,14 @@ enum PacketType {
     HEARTBEAT = 6,
 };
 
+struct Prefix {
+    PacketType type;
+    int8_t messageId;
+    int32_t origAddress;
+    int32_t destAddress;
+    int8_t hopCount;
+};
+
 // Packet Spec
 
 // | 0       | 1        | 2...5       | 6 ... 9     | 10       | 11... 28 |
