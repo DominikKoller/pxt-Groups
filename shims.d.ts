@@ -9,6 +9,18 @@ declare namespace PartiesInternal {
     function sendRawPacket(data: Buffer): void;
 
     /**
+     * Broadcasts a string to a targeted uBit
+     */
+    //% shim=PartiesInternal::sendString
+    function sendString(msg: string, receiverid: uint32): void;
+
+    /**
+     * Broadcasts a string to a targeted uBit
+     */
+    //% shim=PartiesInternal::sendNumber
+    function sendNumber(value: number, receiverid: uint32): void;
+
+    /**
      * Read a packet from the queue of received packets and extract the
      * relevant data from it.
      *
@@ -62,6 +74,12 @@ declare namespace PartiesInternal {
      */
     //% shim=PartiesInternal::receivedString
     function receivedString(): string;
+
+    /**
+     * Return the number payload from the last received packet.
+     */
+    //% shim=PartiesInternal::receivedInt
+    function receivedInt(): number;
 }
 
 // Auto-generated. Do not edit. Really.
