@@ -63,6 +63,10 @@ namespace PartiesInternal {
         uBit.radio.datagram.send(data->data, data->length);
     }
 
+    void rebound(Prefix prefix, uint8_t* buf) {
+        // TODO
+    }
+
     struct hasAddress {
         hasAddress(uint32_t address) : address(address) {}
         int operator()(PartyMember partyMember) { return partyMember.address == address; }
@@ -83,10 +87,12 @@ namespace PartiesInternal {
             newMember.lastSeen = system_timer_current_time();
             newMember.lastMessageId = prefix.messageId;
             partyTable.push_back(newMember);
+            rebound(prefix, buf);
         } else if (prefix.messageId > it->lastMessageId){
             // we haven't seen this message before
             it->lastMessageId = prefix.messageId;
             it->lastSeen = system_timer_current_time();
+            rebound(prefix, buf);
         }
     }
 
