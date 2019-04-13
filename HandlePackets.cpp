@@ -7,7 +7,8 @@ using namespace pxt;
 enum PacketType {
     HEARTBEAT = 6,
     BROADCAST = 7,
-    UNICAST = 8
+    UNICAST_STRING = 8,
+    UNICAST_NUMBER = 9
 };
 
 //Data Packet Spec : size 29 bytes (maximum possible)
@@ -33,7 +34,7 @@ namespace PartiesInternal {
     uint32_t destAddress; //receiverID
     uint8_t hopCount;
     String payloadString; // may be NULL before first packet
-   // int payloadInt;  //for sending ints
+    int payloadInt = 0;
 
     int radioEnable() {
         int r = uBit.radio.enable();
@@ -70,7 +71,7 @@ namespace PartiesInternal {
     
     String getStringValue(uint8_t* buf, uint8_t maxLength) {
         // First byte is the string length
-        uint8_t len = min_(maxLength, buf[0]); //just incasae user string was initially too big
+        uint8_t len = min_(maxLength, buf[0]); //just in case user string was initially too big
         return mkString((char*)buf+1, len); //cheeky typecast?
     }
     
@@ -87,6 +88,25 @@ namespace PartiesInternal {
     }
     
     
+    void unpackPayLoadString(uint8_t* buf){
+        payloadString = getStringValue(buf+DATA_PACKET_PREFIX_SIZE, MAX_DATA_PAYLOAD_LENGTH-1 );
+    }
+    
+    void unpackPayloadNumber(uint8_t* buf){
+        memcpy(&payloadInt, buf+DATA_PACKET_PREFIX_SIZE, MAX_DATA_PAYLOAD_LENGTH);
+    }
+    
+    
+    /** Initialises prefix of packet to be sent*/
+    
+    void setPacketPrefix(uint8_t buf[], uint32_t receiverid, PacketType type) {
+        buf[0] = type;
+        memcpy(buf+1, &myID, 4);
+        memcpy(buf+5, &receiverid, 4);
+        hopCount = 1;
+        memcpy(buf+9, &hopCount, 1);
+    }
+    
     /**
      * Broadcasts a string to a targeted uBit
      */
@@ -98,15 +118,40 @@ namespace PartiesInternal {
         uint8_t hopCount = 1;
 
         memset(buf, 0, 32);
-        buf[0] = PacketType::UNICAST;
-        memcpy(buf+1, &myID, 4);
-        memcpy(buf+5, &receiverid, 4);
-        memcpy(buf+9, &hopCount, 1);
+        setPacketPrefix(buf, receiverid, PacketType::UNICAST_STRING);
         int stringLen = copyStringValue(buf + DATA_PACKET_PREFIX_SIZE, msg, MAX_DATA_PAYLOAD_LENGTH  - 1);
         
         uBit.radio.datagram.send(buf, DATA_PACKET_PREFIX_SIZE + stringLen);
     }
-
+    
+    
+    /**
+     * Broadcasts a string to a targeted uBit
+     */
+    //%
+    
+    void sendNumber(TNumber value, uint32_t receiverid) {
+        if (radioEnable() != MICROBIT_OK) return;
+        
+        int iv = toInt(value);
+        double dv = toDouble(value);
+        if (iv == dv) {
+            uint8_t length = DATA_PACKET_PREFIX_SIZE + sizeof(int);
+            uint8_t buf[length];
+            memset(buf, 0, length);
+            setPacketPrefix(buf, receiverid, PacketType::UNICAST_NUMBER);
+            memcpy(buf + DATA_PACKET_PREFIX_SIZE, &iv, sizeof(int));
+            uBit.radio.datagram.send(buf, length);
+        } else {
+            uint8_t length = DATA_PACKET_PREFIX_SIZE + sizeof(double);
+            uint8_t buf[length];
+            memset(buf, 0, length);
+            setPacketPrefix(buf, receiverid, PacketType::UNICAST_NUMBER);
+            memcpy(buf + DATA_PACKET_PREFIX_SIZE, &dv, sizeof(double));
+            uBit.radio.datagram.send(buf, length);
+        }
+    }
+    
     
     /**
      * Take a heartbeat buffer and unpack the values inside it into variables.
@@ -125,7 +170,18 @@ namespace PartiesInternal {
         memcpy(&origAddress, buf+1,  4);
         memcpy(&destAddress, buf+5,  4);
         memcpy(&hopCount,    buf+9, 1);
-        payloadString = getStringValue(buf+DATA_PACKET_PREFIX_SIZE, MAX_DATA_PAYLOAD_LENGTH-1 );
+        //now to extract the payload depending on the type
+        switch (type){
+            case PacketType::UNICAST_STRING:
+                unpackPayLoadString(buf);
+                break;
+            case PacketType::UNICAST_NUMBER:
+                unpackPayloadNumber(buf);
+                break;
+            default:
+                break;
+                
+        }
     }
     
 
@@ -146,9 +202,11 @@ namespace PartiesInternal {
             case PacketType::HEARTBEAT:
                 unpackHrtBtPacket(buf);
                 break;
-            case PacketType::UNICAST:
+            case PacketType::UNICAST_STRING:
+            case PacketType::UNICAST_NUMBER:
                 unpackDataPacket(buf);
                 break;
+                
             default: break;
         }
     }
@@ -219,5 +277,16 @@ namespace PartiesInternal {
         if (radioEnable() != MICROBIT_OK || NULL == payloadString) return mkString("", 0);
         return payloadString;
     }
+    
+    
+    /**
+     * Return the number payload from the last received packet.
+     */
+    //%
+    TNumber receivedInt() {
+        if (radioEnable() != MICROBIT_OK) return fromInt(0);
+        return fromInt(payloadInt);
+    }
+    
 
 }
