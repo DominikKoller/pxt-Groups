@@ -64,11 +64,11 @@ namespace PartiesInternal {
     }
 
     struct hasAddress {
-        hasAddress(int address) : address(address) {}
-        int operator()(PartyMember partyMember) { partyMember.address == address; }
+        hasAddress(uint32_t address) : address(address) {}
+        int operator()(PartyMember partyMember) { return partyMember.address == address; }
 
         private:
-            int address;
+            uint32_t address;
     };
     
     void receiveHeartbeat(Prefix prefix, uint8_t* buf) {
@@ -83,8 +83,10 @@ namespace PartiesInternal {
             newMember.lastSeen = system_timer_current_time();
             newMember.lastMessageId = prefix.messageId;
             partyTable.push_back(newMember);
-        } else {
-
+        } else if (prefix.messageId > it->lastMessageId){
+            // we haven't seen this message before
+            it->lastMessageId = prefix.messageId;
+            it->lastSeen = system_timer_current_time();
         }
     }
 
