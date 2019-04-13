@@ -34,6 +34,8 @@ namespace PartiesInternal {
 
     bool radioEnabled = false;
 
+    int8_t ownMessageId = 0;
+
     int radioEnable() {
         int r = uBit.radio.enable();
         if (r != MICROBIT_OK) {
@@ -69,5 +71,18 @@ namespace PartiesInternal {
         uint8_t* buf = p.getBytes();
     }
 
+    void setPacketPrefix(uint8_t* buf, Prefix prefix) {
+        memcpy(buf,     &(prefix.type), 1);
+        memcpy(buf+1,   &(prefix.messageId), 1);
+        memcpy(buf+2,   &(prefix.origAddress), 4);
+        memcpy(buf+6,   &(prefix.destAddress), 4);
+        memcpy(buf+10,  &(prefix.hopCount), 1);
+    }
+
+    //%
+    void sendHeartbeat(){
+        ownMessageId++;
+
+    }
 
 }
