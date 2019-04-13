@@ -8,13 +8,20 @@ using namespace pxt;
 
 #define MAX_HOP_COUNT 1;
 #define HEARTBEAT_FREQUENCY 1000;
-#define KEEP_TIME 7000;
+#define KEEP_TIME 7000; // TODO did not use this due to some mysterious error
 #define REBOUND_MAXWAIT 500;
 #define REBOUND_PROBABILITY 0.9;
 
 enum PacketType {
-    HEARTBEAT = 6,
-    UNICAST_STRING = 7
+    HEARTBEAT = 7,
+    UNICAST_STRING = 8
+};
+
+// This is a workaround so TS knows which callback to use
+// Would not be needed if we could use c++ callbacks, haven't figured out how
+enum PayloadType {
+    NONE = 0,
+    STRING = 1
 };
 
 struct Prefix {
@@ -31,8 +38,7 @@ struct PartyMember {
     uint8_t lastMessageId;
 };
 
-struct Payload {};
-struct StringPayload : Payload { String value; };
+struct Payload { String stringValue; };
 
 // Packet Spec
 
@@ -49,6 +55,7 @@ namespace PartiesInternal {
     std::vector<PartyMember> partyTable;
 
     Payload lastPayload;
+    PayloadType lastPayloadType = NONE;
 
     int radioEnable() {
         int r = uBit.radio.enable();
@@ -63,6 +70,22 @@ namespace PartiesInternal {
             radioEnabled = true;
         }
         return r;
+    }
+
+    bool isOldEntry(PartyMember member){
+        // TODO couldn't use KEEP_TIME here, gives me a compile error!
+        return (member.lastSeen + 7000) < (system_timer_current_time());
+    }
+
+    /**
+     * Filters out old entries in the table
+     * Also call at HEARTBEAT_FREQUENCY from TS
+     */
+    //%
+    void filterTable(){
+        partyTable.erase(
+        std::remove_if (partyTable.begin(), partyTable.end(), isOldEntry),
+        partyTable.end());
     }
 
     void sendRawPacket(Buffer data) {
@@ -102,12 +125,24 @@ namespace PartiesInternal {
         }
     }
 
-    StringPayload getStringPayload(uint8_t* buf, uint8_t maxLength) {
-        StringPayload payload;
+    Payload getStringPayload(uint8_t* buf, uint8_t maxLength) {
         // First byte is the string length
         uint8_t len = min_(maxLength, buf[0]);
-        payload.value = mkString((char*)buf + 1, len);
+        Payload payload;
+        payload.stringValue = mkString((char*)buf + 1, len);
         return payload;
+    }
+
+    uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
+        uint8_t len = min_(maxLength, data->getUTF8Size());
+
+        // One byte for length of the string
+        buf[0] = len;
+
+        if (len > 0) {
+            memcpy(buf + 1, data->getUTF8Data(), len);
+        }
+        return len + 1;
     }
 
     /**
@@ -133,8 +168,10 @@ namespace PartiesInternal {
                 receiveHeartbeat(prefix, buf);
                 break;
             case PacketType::UNICAST_STRING:
-                if(prefix.destAddress == microbit_serial_number())
+                if(prefix.destAddress == microbit_serial_number()) {
                     lastPayload = getStringPayload(buf + PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
+                    lastPayloadType = PayloadType::STRING;
+                }
                 else rebound(prefix, buf);
                 break;
             default: break;
@@ -168,6 +205,35 @@ namespace PartiesInternal {
         uBit.radio.datagram.send(buf, PREFIX_LENGTH);
     }
 
+    /**
+     * Send a string to the micro:bit with the specified address
+     */
+    //%
+    void sendString(String msg, uint32_t destAddress) {
+        if (radioEnable() != MICROBIT_OK || NULL == msg) return;
+        
+        uint8_t buf[32];
+        memset(buf, 0, 32);
+
+        Prefix prefix;
+        prefix.type = PacketType::UNICAST_STRING;
+        prefix.messageId = ownMessageId;
+        prefix.origAddress = microbit_serial_number();
+        prefix.destAddress = destAddress;
+        prefix.hopCount = 1;
+        setPacketPrefix(buf, prefix);
+
+        int stringLen = copyStringValue(buf + PREFIX_LENGTH, msg, MAX_PAYLOAD_LENGTH  - 1);
+        
+        uBit.radio.datagram.send(buf, PREFIX_LENGTH + stringLen);
+    }
+
+    void resetPayload(){
+        Payload empty;
+        lastPayload = empty;
+        lastPayloadType = PayloadType::NONE;
+    }
+
     
     /**
      * Use this only to call receiveData from Typescript
@@ -192,4 +258,32 @@ namespace PartiesInternal {
      */
     //%
     int numberOfPartyMembers() { return partyTable.size(); }
+
+    /**
+     * Random Party Member
+     */
+    //%
+    uint32_t randomPartyMember() {
+        if(partyTable.size() == 0)
+            return -1;
+        else return partyTable[uBit.random(partyTable.size())].address;
+    }
+
+    /**
+     * For TS to check whether there is a new payload to react to
+     */
+    //%
+    PayloadType receivedPayloadType() { return lastPayloadType; }
+
+    /**
+     * Get the received string
+     */
+    //%
+    String receivedStringPayload() { 
+        String message = lastPayload.stringValue;
+        resetPayload();
+        if (radioEnable() != MICROBIT_OK || NULL == message) return mkString("", 0);
+        incrRC(message);
+        return message;
+    }
 }
