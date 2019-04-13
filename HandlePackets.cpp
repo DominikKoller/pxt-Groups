@@ -167,4 +167,10 @@ namespace PartiesInternal {
      */
     //%
     int getHeartbeatFrequency(){ return HEARTBEAT_FREQUENCY; }
+
+    /**
+     * Numer of Party Members
+     */
+    //%
+    int numberOfPartyMembers() { return partyTable.size(); }
 }

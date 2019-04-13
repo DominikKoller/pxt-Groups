@@ -5,6 +5,10 @@
 
 namespace parties {
 
+    basic.forever(() => {
+        basic.showNumber(PartiesInternal.numberOfPartyMembers());
+    });
+
     //% block
     export function me(): number { return 0 }
 
