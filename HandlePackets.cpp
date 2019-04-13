@@ -18,10 +18,10 @@ enum PacketType {
 
 struct Prefix {
     PacketType type;
-    int8_t messageId;
-    int32_t origAddress;
-    int32_t destAddress;
-    int8_t hopCount;
+    uint8_t messageId;
+    uint32_t origAddress;
+    uint32_t destAddress;
+    uint8_t hopCount;
 };
 
 // Packet Spec
@@ -34,7 +34,7 @@ namespace PartiesInternal {
 
     bool radioEnabled = false;
 
-    int8_t ownMessageId = 0;
+    uint8_t ownMessageId = 0;
 
     int radioEnable() {
         int r = uBit.radio.enable();
