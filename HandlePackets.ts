@@ -89,7 +89,7 @@ namespace PartiesInternal {
             case PacketType.BROADCAST:
                 //          handleBroadcast(/* args */);
                 break;
-            case PacketType.UNICAST:
+            case PacketType.UNICAST_STRING:
                 handleUnicast(receivedString(), receivedOrigAddress(), receivedDestAddress(), receivedHopCount() )
                 break;
             default: // unknown packet
@@ -181,4 +181,7 @@ namespace PartiesInternal {
     // Temp
     // TODO think about how to expose the lib functionality
     export function numberOfPartyMembers(): number { return partyTable.length; }
+
+
+
 }
