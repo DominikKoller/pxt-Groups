@@ -75,7 +75,17 @@ namespace PartiesInternal {
         // passing buf in anticipation of data transmitted on Heartbeat
         // c++ insanity. This just finds a party member in partyTable with the address prefix.origAddress
         std::vector<PartyMember>::iterator it = std::find_if (partyTable.begin(), partyTable.end(), hasAddress(prefix.origAddress));
-    
+        
+        if(it == partyTable.end()){
+            // originator was not in table
+            PartyMember newMember;
+            newMember.address = prefix.origAddress;
+            newMember.lastSeen = system_timer_current_time();
+            newMember.lastMessageId = prefix.messageId;
+            partyTable.push_back(newMember);
+        } else {
+
+        }
     }
 
     /**
