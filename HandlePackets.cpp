@@ -6,6 +6,12 @@ using namespace pxt;
 #define MAX_PAYLOAD_LENGTH 19
 #define PREFIX_LENGTH 10
 
+#define MAX_HOP_COUNT = 1;
+#define HEARTBEAT_FREQUENCY = 1000;
+#define KEEP_TIME = 7000;
+#define REBOUND_MAXWAIT = 500;
+#define REBOUND_PROBABILITY = 0.9;
+
 enum PacketType {
     HEARTBEAT = 6,
 };
@@ -43,14 +49,10 @@ namespace PartiesInternal {
         return r;
     }
 
-    /**
-     * Send the data in a buffer on the radio.
-     * Note: The buffer must have length <= 28
-     */
-    //%
     void sendRawPacket(Buffer data) {
         uBit.radio.datagram.send(data->data, data->length);
     }
+    
     
 
     /**
@@ -66,4 +68,6 @@ namespace PartiesInternal {
         PacketBuffer p = uBit.radio.datagram.recv();
         uint8_t* buf = p.getBytes();
     }
+
+
 }
