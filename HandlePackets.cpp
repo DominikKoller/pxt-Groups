@@ -62,9 +62,20 @@ namespace PartiesInternal {
     void sendRawPacket(Buffer data) {
         uBit.radio.datagram.send(data->data, data->length);
     }
+
+    struct hasAddress {
+        hasAddress(int address) : address(address) {}
+        int operator()(PartyMember partyMember) { partyMember.address == address; }
+
+        private:
+            int address;
+    };
     
-    void receiveHeartbeat(Prefix prefix, uint8_t* buf){
-        
+    void receiveHeartbeat(Prefix prefix, uint8_t* buf) {
+        // passing buf in anticipation of data transmitted on Heartbeat
+        // c++ insanity. This just finds a party member in partyTable with the address prefix.origAddress
+        std::vector<PartyMember>::iterator it = std::find_if (partyTable.begin(), partyTable.end(), hasAddress(prefix.origAddress));
+    
     }
 
     /**
