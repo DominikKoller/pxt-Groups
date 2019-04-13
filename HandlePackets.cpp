@@ -102,11 +102,12 @@ namespace PartiesInternal {
         }
     }
 
-    void receiveUnicast(Prefix prefix, uint8_t* buf) {
-        if(prefix.destAddress != microbit_serial_number()){
-            rebound(prefix, buf);
-            return;
-        }
+    StringPayload getStringPayload(uint8_t* buf, uint8_t maxLength) {
+        StringPayload payload;
+        // First byte is the string length
+        uint8_t len = min_(maxLength, buf[0]);
+        payload.value = mkString((char*)buf + 1, len);
+        return payload;
     }
 
     /**
@@ -132,7 +133,10 @@ namespace PartiesInternal {
                 receiveHeartbeat(prefix, buf);
                 break;
             case PacketType::UNICAST_STRING:
-                receiveUnicast(prefix, buf);
+                if(prefix.destAddress == microbit_serial_number())
+                    lastPayload = getStringPayload(buf + PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
+                else rebound(prefix, buf);
+                break;
             default: break;
         }
     }
