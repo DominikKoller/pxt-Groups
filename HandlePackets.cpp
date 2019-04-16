@@ -14,14 +14,16 @@ using namespace pxt;
 
 enum PacketType {
     HEARTBEAT = 7,
-    UNICAST_STRING = 8
+    UNICAST_STRING = 8,
+    UNICAST_NUMBER = 9
 };
 
 // This is a workaround so TS knows which callback to use
 // Would not be needed if we could use c++ callbacks, haven't figured out how
 enum PayloadType {
     NONE = 0,
-    STRING = 1
+    STRING = 1,
+    NUMBER = 2
 };
 
 struct Prefix {
@@ -38,7 +40,7 @@ struct PartyMember {
     uint8_t lastMessageId;
 };
 
-struct Payload { String stringValue; };
+struct Payload { String stringValue; int numValue; };
 
 // Packet Spec
 
@@ -84,8 +86,7 @@ namespace PartiesInternal {
     //%
     void filterTable(){
         partyTable.erase(
-        std::remove_if (partyTable.begin(), partyTable.end(), isOldEntry),
-        partyTable.end());
+        std::remove_if (partyTable.begin(), partyTable.end(), isOldEntry);
     }
 
     void sendRawPacket(Buffer data) {
@@ -174,6 +175,16 @@ namespace PartiesInternal {
                 }
                 else rebound(prefix, buf);
                 break;
+                
+            case PacketType::UNICAST_NUMBER:
+                if(prefix.destAddress == microbit_serial_number()) {
+                    Payload payload;
+                    memcpy(&payload.numvalue, buf+11, sizeof(int));
+                    lastPayload = payload;
+                    lastPayloadType = PayloadType::NUMBER;
+                }
+                else rebound(prefix, buf);
+                break;
             default: break;
         }
     }
@@ -227,6 +238,29 @@ namespace PartiesInternal {
         
         uBit.radio.datagram.send(buf, PREFIX_LENGTH + stringLen);
     }
+                         
+    /**
+      * Send a string to the micro:bit with the specified address
+      */
+    //%
+                         
+    void sendNumber(int no,  uint32_t destAddress){
+        uint8_t length = PREFIX_LENGTH + sizeof(int);
+        if (radioEnable() != MICROBIT_OK) return;
+        uint8_t buf[32];
+        memset(buf, 0, 32);
+        Prefix prefix;
+        prefix.type = PacketType::UNICAST_NUMBER;
+        prefix.messageId = ownMessageId;
+        prefix.origAddress = microbit_serial_number();
+        prefix.destAddress = destAddress;
+        prefix.hopCount = 1;
+        setPacketPrefix(buf, prefix);
+        memcpy(buf + PREFIX_LENGTH, &no , sizeof(int));
+        uBit.radio.datagram.send(buf, length)
+        }
+                         
+    
 
     void resetPayload(){
         Payload empty;
@@ -286,4 +320,10 @@ namespace PartiesInternal {
         incrRC(message);
         return message;
     }
+                         
+   /**
+    * Get the received number */
+   //%
+        
+    
 }
