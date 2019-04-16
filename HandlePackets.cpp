@@ -6,11 +6,11 @@ using namespace pxt;
 #define MAX_PAYLOAD_LENGTH 19
 #define PREFIX_LENGTH 10
 
-#define MAX_HOP_COUNT 1;
-#define HEARTBEAT_FREQUENCY 1000;
-#define KEEP_TIME 7000; // TODO did not use this due to some mysterious error
-#define REBOUND_MAXWAIT 500;
-#define REBOUND_PROBABILITY 0.9;
+#define MAX_HOP_COUNT 1
+#define HEARTBEAT_FREQUENCY 1000
+#define KEEP_TIME 7000
+#define REBOUND_MAXWAIT 500
+#define REBOUND_PROBABILITY 0.9
 
 enum PacketType {
     HEARTBEAT = 7,
@@ -73,8 +73,7 @@ namespace PartiesInternal {
     }
 
     bool isOldEntry(PartyMember member){
-        // TODO couldn't use KEEP_TIME here, gives me a compile error!
-        return (member.lastSeen + 7000) < (system_timer_current_time());
+        return (member.lastSeen + KEEP_TIME) < (system_timer_current_time());
     }
 
     /**
