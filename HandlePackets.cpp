@@ -92,7 +92,41 @@ namespace PartiesInternal {
     }
 
     void rebound(Prefix prefix, uint8_t* buf) {
-        // TODO
+        // Limit the number of hops a packet can have
+        if (prefix.hopCount >= MAX_HOP_COUNT) return;
+
+        // Only rebound with a certain probability
+        if (uBit.random(100) >= 100*REBOUND_PROBABILITY) return;
+
+        // Wait for a small random amount of time before rebounding
+        // This helps to avoid packet collisions with other microbits
+        uBit.sleep(uBit.random(REBOUND_MAXWAIT));
+
+        // Increment hop count by 1
+        uint8_t hopCount = prefix.hopCount + 1;
+        memcpy(buf+10, &hopCount, 1);
+
+        // Send the correct number of bytes depending on the type of packet
+        switch (prefix.type)
+        {
+            case PacketType::HEARTBEAT:
+                uBit.radio.datagram.send(buf, PREFIX_LENGTH);
+                break;
+
+            case PacketType::UNICAST_STRING:
+                // First byte of payload is string length
+                uint8_t stringLen;
+                memcpy(&stringLen, buf + PREFIX_LENGTH, 1);
+
+                uBit.radio.datagram.send(buf, PREFIX_LENGTH + stringLen + 1);
+                break;
+
+            /*
+            case PacketType::UNICAST_NUMBER:
+                uBit.radio.datagram.send(buf, PREFIX_LENGTH + NUMBER_PAYLOAD_LENGTH);
+                break;
+            */
+        }
     }
 
     struct hasAddress {
