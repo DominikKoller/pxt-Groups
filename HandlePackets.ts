@@ -11,12 +11,10 @@ namespace PartiesInternal {
         numberCallback = cb;
     }
 
-    control.inBackground(function () {
-        while (true) {
-            PartiesInternal.filterTable();
-            PartiesInternal.sendHeartbeat();
-            basic.pause(PartiesInternal.getHeartbeatFrequency());
-        }
+    basic.forever(() => {
+        PartiesInternal.filterTable();
+        PartiesInternal.sendHeartbeat();
+        basic.pause(PartiesInternal.getHeartbeatFrequency());
     });
 
     PartiesInternal.onDataReceived(() => {

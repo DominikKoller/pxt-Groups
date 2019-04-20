@@ -2,37 +2,33 @@
 declare namespace PartiesInternal {
 
     /**
-     * Send the data in a buffer on the radio.
-     * Note: The buffer must have length <= 28
+     * Filters out old entries in the table
+     * Also call at HEARTBEAT_FREQUENCY from TS
      */
-    //% shim=PartiesInternal::sendRawPacket
-    function sendRawPacket(data: Buffer): void;
+    //% shim=PartiesInternal::filterTable
+    function filterTable(): void;
 
     /**
-     * Broadcasts a string to a targeted uBit
+     * Read a packet from the queue of received packets and react accordingly
+     */
+    //% shim=PartiesInternal::receiveData
+    function receiveData(): void;
+
+    /** 
+     * To be called at Heartbeat Frequency
+     */
+    //% shim=PartiesInternal::sendHeartbeat
+    function sendHeartbeat(): void;
+
+    /**
+     * Send a string to the micro:bit with the specified address
      */
     //% shim=PartiesInternal::sendString
-    function sendString(msg: string, receiverid: uint32): void;
+    function sendString(msg: string, destAddress: uint32): void;
 
     /**
-     * Broadcasts a string to a targeted uBit
-     */
-    //% shim=PartiesInternal::sendNumber
-    function sendNumber(value: number, receiverid: uint32): void;
-
-    /**
-     * Read a packet from the queue of received packets and extract the
-     * relevant data from it.
-     *
-     * A call to this function will be followed by `receivedType()` to get the
-     * type of packet that is received, then calls to `received*()` to get the
-     * rest of the data in the packet.
-     */
-    //% shim=PartiesInternal::receivePacket
-    function receivePacket(): void;
-
-    /**
-     * Register a function to be called when a radio packet is received
+     * Use this only to call receiveData from Typescript
+     * (workaround, cannot figure out how to pass c++ function to registerWithDal)
      * Note: Only one function can be registered at once, so the radio module
      * will have to be disabled.
      */
@@ -40,46 +36,34 @@ declare namespace PartiesInternal {
     function onDataReceived(body: () => void): void;
 
     /**
-     * Return the type of packet that was last received.
+     * Use as frequency to call sendHeartbeat
      */
-    //% shim=PartiesInternal::receivedType
-    function receivedType(): number;
+    //% shim=PartiesInternal::getHeartbeatFrequency
+    function getHeartbeatFrequency(): int32;
 
     /**
-     * Return the message ID from the last received packet.
+     * Numer of Party Members
      */
-    //% shim=PartiesInternal::receivedMessageId
-    function receivedMessageId(): number;
+    //% shim=PartiesInternal::numberOfPartyMembers
+    function numberOfPartyMembers(): int32;
 
     /**
-     * Return the origin address from the last received packet.
+     * Random Party Member
      */
-    //% shim=PartiesInternal::receivedOrigAddress
-    function receivedOrigAddress(): number;
+    //% shim=PartiesInternal::randomPartyMember
+    function randomPartyMember(): uint32;
 
     /**
-     * Return the destination address from the last received packet.
+     * For TS to check whether there is a new payload to react to
      */
-    //% shim=PartiesInternal::receivedDestAddress
-    function receivedDestAddress(): number;
+    //% shim=PartiesInternal::receivedPayloadType
+    function receivedPayloadType(): PayloadType;
 
     /**
-     * Return the hop count from the last received packet.
+     * Get the received string
      */
-    //% shim=PartiesInternal::receivedHopCount
-    function receivedHopCount(): number;
-
-    /**
-     * Return the string payload from the last received packet.
-     */
-    //% shim=PartiesInternal::receivedString
-    function receivedString(): string;
-
-    /**
-     * Return the number payload from the last received packet.
-     */
-    //% shim=PartiesInternal::receivedInt
-    function receivedInt(): number;
+    //% shim=PartiesInternal::receivedStringPayload
+    function receivedStringPayload(): string;
 }
 
 // Auto-generated. Do not edit. Really.
