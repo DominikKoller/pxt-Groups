@@ -183,7 +183,7 @@ namespace PartiesInternal {
             case PacketType::UNICAST_NUMBER:
                 if(prefix.destAddress == microbit_serial_number()) {
                     Payload payload;
-                    memcpy(&payload.numValue, buf+11, sizeof(int));
+                    memcpy(&payload.numValue, buf+PREFIX_LENGTH, sizeof(int));
                     lastPayload = payload;
                     lastPayloadType = PayloadType::NUM;
                 }
@@ -249,6 +249,7 @@ namespace PartiesInternal {
     //%
                          
     void sendNumber(int no,  uint32_t destAddress){
+        int num = no;
         uint8_t length = PREFIX_LENGTH + sizeof(int);
         if (radioEnable() != MICROBIT_OK) return;
         uint8_t buf[32];
@@ -260,7 +261,7 @@ namespace PartiesInternal {
         prefix.destAddress = destAddress;
         prefix.hopCount = 1;
         setPacketPrefix(buf, prefix);
-        memcpy(buf + PREFIX_LENGTH, &no , sizeof(int));
+        memcpy(buf + PREFIX_LENGTH, &num , sizeof(int));
         uBit.radio.datagram.send(buf, length);
         }
                          
@@ -328,11 +329,11 @@ namespace PartiesInternal {
    /**
     * Get the received number */
   //%
-        TNumber receivedNumberPayload () {
+        int receivedNumberPayload () {
             int message = lastPayload.numValue;
             resetPayload();
             if (radioEnable() != MICROBIT_OK) return 0;
-            return fromInt(message);
+            return message;
         }
 
         
