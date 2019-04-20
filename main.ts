@@ -5,13 +5,15 @@
 
 namespace parties {
 
-    basic.forever(() => {
+  /*  basic.forever(() => {
         basic.showNumber(PartiesInternal.numberOfPartyMembers());
-    });
+    }); */
 
     PartiesInternal.onStringReceived((s: string) => basic.showString(s));
+    PartiesInternal.onNumberReceived((n: number) => basic.showNumber(n));
 
-    input.onButtonPressed(Button.A, () => PartiesInternal.sendString("hello", PartiesInternal.randomPartyMember()));
+
+    input.onButtonPressed(Button.A, () => PartiesInternal.sendNumber(7777, PartiesInternal.randomPartyMember()));
 
     //% block
     export function me(): number { return 0 }
