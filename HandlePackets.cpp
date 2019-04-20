@@ -23,7 +23,7 @@ enum PacketType {
 enum PayloadType {
     NONE = 0,
     STRING = 1,
-    NUMBER = 2
+    NUM = 2
 };
 
 struct Prefix {
@@ -86,7 +86,11 @@ namespace PartiesInternal {
     //%
     void filterTable(){
         partyTable.erase(
-        std::remove_if (partyTable.begin(), partyTable.end(), isOldEntry);
+                         
+                         std::remove_if (partyTable.begin(), partyTable.end(), isOldEntry),
+                         partyTable.end()
+                         
+                         );
     }
 
     void sendRawPacket(Buffer data) {
@@ -179,9 +183,9 @@ namespace PartiesInternal {
             case PacketType::UNICAST_NUMBER:
                 if(prefix.destAddress == microbit_serial_number()) {
                     Payload payload;
-                    memcpy(&payload.numvalue, buf+11, sizeof(int));
+                    memcpy(&payload.numValue, buf+11, sizeof(int));
                     lastPayload = payload;
-                    lastPayloadType = PayloadType::NUMBER;
+                    lastPayloadType = PayloadType::NUM;
                 }
                 else rebound(prefix, buf);
                 break;
@@ -240,7 +244,7 @@ namespace PartiesInternal {
     }
                          
     /**
-      * Send a string to the micro:bit with the specified address
+      * Send a number to the micro:bit with the specified address
       */
     //%
                          
@@ -257,7 +261,7 @@ namespace PartiesInternal {
         prefix.hopCount = 1;
         setPacketPrefix(buf, prefix);
         memcpy(buf + PREFIX_LENGTH, &no , sizeof(int));
-        uBit.radio.datagram.send(buf, length)
+        uBit.radio.datagram.send(buf, length);
         }
                          
     
@@ -323,7 +327,14 @@ namespace PartiesInternal {
                          
    /**
     * Get the received number */
-   //%
+  //%
+        TNumber receivedNumberPayload () {
+            int message = lastPayload.numValue;
+            resetPayload();
+            if (radioEnable() != MICROBIT_OK) return 0;
+            return fromInt(message);
+        }
+
         
     
 }
