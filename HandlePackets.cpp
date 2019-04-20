@@ -86,11 +86,9 @@ namespace PartiesInternal {
     //%
     void filterTable(){
         partyTable.erase(
-                         
-                         std::remove_if (partyTable.begin(), partyTable.end(), isOldEntry),
-                         partyTable.end()
-                         
-                         );
+            std::remove_if(partyTable.begin(), partyTable.end(), isOldEntry),
+            partyTable.end()
+        );
     }
 
     void sendRawPacket(Buffer data) {
@@ -247,13 +245,12 @@ namespace PartiesInternal {
       * Send a number to the micro:bit with the specified address
       */
     //%
-                         
-    void sendNumber(int no,  uint32_t destAddress){
-        int num = no;
-        uint8_t length = PREFIX_LENGTH + sizeof(int);
+    void sendNumber(int num,  uint32_t destAddress){
         if (radioEnable() != MICROBIT_OK) return;
+
         uint8_t buf[32];
         memset(buf, 0, 32);
+
         Prefix prefix;
         prefix.type = PacketType::UNICAST_NUMBER;
         prefix.messageId = ownMessageId;
@@ -261,11 +258,11 @@ namespace PartiesInternal {
         prefix.destAddress = destAddress;
         prefix.hopCount = 1;
         setPacketPrefix(buf, prefix);
+
         memcpy(buf + PREFIX_LENGTH, &num , sizeof(int));
-        uBit.radio.datagram.send(buf, length);
-        }
-                         
-    
+
+        uBit.radio.datagram.send(buf, PREFIX_LENGTH + sizeof(int));
+    }
 
     void resetPayload(){
         Payload empty;
@@ -273,7 +270,6 @@ namespace PartiesInternal {
         lastPayloadType = PayloadType::NONE;
     }
 
-    
     /**
      * Use this only to call receiveData from Typescript
      * (workaround, cannot figure out how to pass c++ function to registerWithDal)
@@ -326,16 +322,14 @@ namespace PartiesInternal {
         return message;
     }
                          
-   /**
-    * Get the received number */
-  //%
-        int receivedNumberPayload () {
-            int message = lastPayload.numValue;
-            resetPayload();
-            if (radioEnable() != MICROBIT_OK) return 0;
-            return message;
-        }
-
-        
-    
+    /**
+     * Get the received number
+     */
+    //%
+    int receivedNumberPayload () {
+        int message = lastPayload.numValue;
+        resetPayload();
+        if (radioEnable() != MICROBIT_OK) return 0;
+        return message;
+    }
 }
