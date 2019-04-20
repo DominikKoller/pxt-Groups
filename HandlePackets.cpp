@@ -4,7 +4,7 @@
 using namespace pxt;
 
 #define MAX_PAYLOAD_LENGTH 19
-#define PREFIX_LENGTH 10
+#define PREFIX_LENGTH 11
 
 #define MAX_HOP_COUNT 1;
 #define HEARTBEAT_FREQUENCY 1000;
