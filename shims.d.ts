@@ -27,12 +27,6 @@ declare namespace PartiesInternal {
     function sendString(msg: string, destAddress: uint32): void;
 
     /**
-     * Send a number to the micro:bit with the specified address
-     */
-    //% shim=PartiesInternal::sendNumber
-    function sendNumber(num: int32, destAddress: uint32): void;
-
-    /**
      * Use this only to call receiveData from Typescript
      * (workaround, cannot figure out how to pass c++ function to registerWithDal)
      * Note: Only one function can be registered at once, so the radio module
@@ -70,12 +64,6 @@ declare namespace PartiesInternal {
      */
     //% shim=PartiesInternal::receivedStringPayload
     function receivedStringPayload(): string;
-
-    /**
-     * Get the received number
-     */
-    //% shim=PartiesInternal::receivedNumberPayload
-    function receivedNumberPayload(): int32;
 }
 
 // Auto-generated. Do not edit. Really.
