@@ -12,14 +12,24 @@ namespace parties {
     PartiesInternal.onStringReceived((s: string) => basic.showString(s));
     PartiesInternal.onNumberReceived((n: number) => basic.showNumber(n));
 
+    /*
+    input.onButtonPressed(Button.A, () => PartiesInternal.unicastNumber(7777, PartiesInternal.randomPartyMember()));
+    input.onButtonPressed(Button.B, () => PartiesInternal.unicastString("abc", PartiesInternal.randomPartyMember()));
+    */
 
-    input.onButtonPressed(Button.A, () => PartiesInternal.sendNumber(7777, PartiesInternal.randomPartyMember()));
+    
+    input.onButtonPressed(Button.A, () => PartiesInternal.broadcastNumber(7777));
+    input.onButtonPressed(Button.B, () => PartiesInternal.broadcastString("abc"));
+    
 
     //% block
     export function me(): number { return 0 }
 
     //% block
     export function firstPartyMember(): number { return 0 }
+
+    //% block
+    export function wholeParty(): number { return -1 }
 
     //% block
     export function message(): string { return "" }

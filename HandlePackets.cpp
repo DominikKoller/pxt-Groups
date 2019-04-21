@@ -15,7 +15,9 @@ using namespace pxt;
 enum PacketType {
     HEARTBEAT = 7,
     UNICAST_STRING = 8,
-    UNICAST_NUMBER = 9
+    UNICAST_NUMBER = 9,
+    BROADCAST_STRING = 10,
+    BROADCAST_NUMBER = 11
 };
 
 // This is a workaround so TS knows which callback to use
@@ -117,6 +119,7 @@ namespace PartiesInternal {
                 break;
 
             case PacketType::UNICAST_STRING:
+            case PacketType::BROADCAST_STRING:
                 // First byte of payload is string length
                 uint8_t stringLen;
                 memcpy(&stringLen, buf + PREFIX_LENGTH, 1);
@@ -126,9 +129,13 @@ namespace PartiesInternal {
 
             /*
             case PacketType::UNICAST_NUMBER:
+            case PacketType::BROADCAST_NUMBER:
                 uBit.radio.datagram.send(buf, PREFIX_LENGTH + NUMBER_PAYLOAD_LENGTH);
                 break;
             */
+
+            default:
+                break;
         }
     }
 
@@ -139,19 +146,46 @@ namespace PartiesInternal {
         private:
             uint32_t address;
     };
+
+    void addNewPartyMember(Prefix prefix)
+    {
+        PartyMember newMember;
+        newMember.address = prefix.origAddress;
+        newMember.lastSeen = system_timer_current_time();
+        newMember.lastMessageId = prefix.messageId;
+        partyTable.push_back(newMember);
+    }
+
+    /** 
+     * Check whether this message has been seen before, and if not, update the party table.
+     */
+    bool messageNotSeenBefore(Prefix prefix) {
+        std::vector<PartyMember>::iterator sender = 
+            std::find_if (partyTable.begin(), partyTable.end(), hasAddress(prefix.origAddress));
+
+        if (sender == partyTable.end()) {
+            // Sender not recognised, so create a new entry for them in partyTable.
+            addNewPartyMember(prefix);
+            return true;
+        }
+        else if (prefix.messageId > sender->lastMessageId) {
+            // We haven't seen this message before, so update partyTable.
+            sender->lastMessageId = prefix.messageId;
+            sender->lastSeen = system_timer_current_time();
+            return true;
+        }
+        return false;
+    }
     
     void receiveHeartbeat(Prefix prefix, uint8_t* buf) {
         // passing buf in anticipation of data transmitted on Heartbeat
         // c++ insanity. This just finds a party member in partyTable with the address prefix.origAddress
-        std::vector<PartyMember>::iterator it = std::find_if (partyTable.begin(), partyTable.end(), hasAddress(prefix.origAddress));
+        std::vector<PartyMember>::iterator it = 
+            std::find_if (partyTable.begin(), partyTable.end(), hasAddress(prefix.origAddress));
         
-        if(it == partyTable.end()){
+        if (it == partyTable.end()){
             // originator was not in table
-            PartyMember newMember;
-            newMember.address = prefix.origAddress;
-            newMember.lastSeen = system_timer_current_time();
-            newMember.lastMessageId = prefix.messageId;
-            partyTable.push_back(newMember);
+            addNewPartyMember(prefix);
             rebound(prefix, buf);
         } else if (prefix.messageId > it->lastMessageId){
             // we haven't seen this message before
@@ -168,6 +202,18 @@ namespace PartiesInternal {
         payload.stringValue = mkString((char*)buf + 1, len);
         return payload;
     }
+
+    void receiveString(uint8_t* buf) {
+        lastPayload = getStringPayload(buf + PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
+        lastPayloadType = PayloadType::STRING;
+    }
+
+    void receiveNumber(uint8_t* buf) {
+        Payload payload;
+        memcpy(&payload.numValue, buf+PREFIX_LENGTH, sizeof(int));
+        lastPayload = payload;
+        lastPayloadType = PayloadType::NUM;
+    }    
 
     uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
         uint8_t len = min_(maxLength, data->getUTF8Size());
@@ -203,24 +249,47 @@ namespace PartiesInternal {
             case PacketType::HEARTBEAT:
                 receiveHeartbeat(prefix, buf);
                 break;
+
+            // For the following packet types, only handle the message if we haven't seen it already.
             case PacketType::UNICAST_STRING:
-                if(prefix.destAddress == microbit_serial_number()) {
-                    lastPayload = getStringPayload(buf + PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
-                    lastPayloadType = PayloadType::STRING;
-                }
-                else rebound(prefix, buf);
-                break;
-                
             case PacketType::UNICAST_NUMBER:
-                if(prefix.destAddress == microbit_serial_number()) {
-                    Payload payload;
-                    memcpy(&payload.numValue, buf+PREFIX_LENGTH, sizeof(int));
-                    lastPayload = payload;
-                    lastPayloadType = PayloadType::NUM;
+            case PacketType::BROADCAST_STRING:
+            case PacketType::BROADCAST_NUMBER:
+                if (messageNotSeenBefore(prefix)) {
+                    switch (prefix.type)
+                    {
+                        case PacketType::UNICAST_STRING:
+                            if (prefix.destAddress == microbit_serial_number()) {
+                                receiveString(buf);
+                            }
+                            else rebound(prefix, buf);    
+                            break;
+                        
+                        case PacketType::UNICAST_NUMBER:
+                            if (prefix.destAddress == microbit_serial_number()) {
+                                receiveNumber(buf);
+                            }
+                            else rebound(prefix, buf);
+                            break;
+
+                        case PacketType::BROADCAST_STRING:
+                            receiveString(buf);
+                            rebound(prefix, buf);
+                            break;
+
+                        case PacketType::BROADCAST_NUMBER:
+                            receiveNumber(buf);
+                            rebound(prefix, buf);
+                            break;
+
+                        default: 
+                            break;
+                    }
                 }
-                else rebound(prefix, buf);
                 break;
-            default: break;
+
+            default: 
+                break;
         }
     }
 
@@ -251,18 +320,15 @@ namespace PartiesInternal {
         uBit.radio.datagram.send(buf, PREFIX_LENGTH);
     }
 
-    /**
-     * Send a string to the micro:bit with the specified address
-     */
-    //%
-    void sendString(String msg, uint32_t destAddress) {
+    void sendString(String msg, PacketType packetType, uint32_t destAddress) {
         if (radioEnable() != MICROBIT_OK || NULL == msg) return;
-        
+
+        ownMessageId++;
         uint8_t buf[32];
         memset(buf, 0, 32);
 
         Prefix prefix;
-        prefix.type = PacketType::UNICAST_STRING;
+        prefix.type = packetType;
         prefix.messageId = ownMessageId;
         prefix.origAddress = microbit_serial_number();
         prefix.destAddress = destAddress;
@@ -273,19 +339,32 @@ namespace PartiesInternal {
         
         uBit.radio.datagram.send(buf, PREFIX_LENGTH + stringLen);
     }
-                         
+
     /**
-      * Send a number to the micro:bit with the specified address
-      */
+     * Send a string to all micro:bits in the party.
+     */
     //%
-    void sendNumber(int num,  uint32_t destAddress){
+    void broadcastString(String message) {
+        sendString(message, PacketType::BROADCAST_STRING, 0);
+    }
+
+    /**
+     * Send a string to the micro:bit with the specified address
+     */
+    //%
+    void unicastString(String message, uint32_t destAddress) {
+        sendString(message, PacketType::UNICAST_STRING, destAddress);
+    }
+
+    void sendNumber(int num, PacketType packetType, uint32_t destAddress){
         if (radioEnable() != MICROBIT_OK) return;
 
+        ownMessageId++;
         uint8_t buf[32];
         memset(buf, 0, 32);
 
         Prefix prefix;
-        prefix.type = PacketType::UNICAST_NUMBER;
+        prefix.type = packetType;
         prefix.messageId = ownMessageId;
         prefix.origAddress = microbit_serial_number();
         prefix.destAddress = destAddress;
@@ -295,6 +374,22 @@ namespace PartiesInternal {
         memcpy(buf + PREFIX_LENGTH, &num , sizeof(int));
 
         uBit.radio.datagram.send(buf, PREFIX_LENGTH + sizeof(int));
+    }
+    
+    /**
+     * Send a number to all micro:bits in the party.
+     */
+    //%
+    void broadcastNumber(int number) {
+        sendNumber(number, PacketType::BROADCAST_NUMBER, 0);
+    }
+
+    /**
+     * Send a number to the micro:bit with the specified address
+     */
+    //%
+    void unicastNumber(int number, uint32_t destAddress) {
+        sendNumber(number, PacketType::UNICAST_NUMBER, destAddress);
     }
 
     void resetPayload(){

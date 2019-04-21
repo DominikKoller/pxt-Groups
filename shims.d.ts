@@ -21,10 +21,28 @@ declare namespace PartiesInternal {
     function sendHeartbeat(): void;
 
     /**
+     * Send a string to all micro:bits in the party.
+     */
+    //% shim=PartiesInternal::broadcastString
+    function broadcastString(message: string): void;
+
+    /**
      * Send a string to the micro:bit with the specified address
      */
-    //% shim=PartiesInternal::sendString
-    function sendString(msg: string, destAddress: uint32): void;
+    //% shim=PartiesInternal::unicastString
+    function unicastString(message: string, destAddress: uint32): void;
+
+    /**
+     * Send a number to all micro:bits in the party.
+     */
+    //% shim=PartiesInternal::broadcastNumber
+    function broadcastNumber(number: int32): void;
+
+    /**
+     * Send a number to the micro:bit with the specified address
+     */
+    //% shim=PartiesInternal::unicastNumber
+    function unicastNumber(number: int32, destAddress: uint32): void;
 
     /**
      * Use this only to call receiveData from Typescript
@@ -64,6 +82,12 @@ declare namespace PartiesInternal {
      */
     //% shim=PartiesInternal::receivedStringPayload
     function receivedStringPayload(): string;
+
+    /**
+     * Get the received number
+     */
+    //% shim=PartiesInternal::receivedNumberPayload
+    function receivedNumberPayload(): int32;
 }
 
 // Auto-generated. Do not edit. Really.
