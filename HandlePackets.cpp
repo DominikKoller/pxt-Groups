@@ -157,42 +157,24 @@ namespace PartiesInternal {
     }
 
     /** 
-     * Check whether this message has been seen before, and if not, update the party table.
+     * Checks whether this message has been seen before, and if not, updates the party table.
      */
-    bool messageNotSeenBefore(Prefix prefix) {
+    bool messageSeenBefore(Prefix prefix) {
         std::vector<PartyMember>::iterator sender = 
             std::find_if (partyTable.begin(), partyTable.end(), hasAddress(prefix.origAddress));
 
         if (sender == partyTable.end()) {
             // Sender not recognised, so create a new entry for them in partyTable.
             addNewPartyMember(prefix);
-            return true;
+            return false;
         }
         else if (prefix.messageId > sender->lastMessageId) {
             // We haven't seen this message before, so update partyTable.
             sender->lastMessageId = prefix.messageId;
             sender->lastSeen = system_timer_current_time();
-            return true;
+            return false;
         }
-        return false;
-    }
-    
-    void receiveHeartbeat(Prefix prefix, uint8_t* buf) {
-        // passing buf in anticipation of data transmitted on Heartbeat
-        // c++ insanity. This just finds a party member in partyTable with the address prefix.origAddress
-        std::vector<PartyMember>::iterator it = 
-            std::find_if (partyTable.begin(), partyTable.end(), hasAddress(prefix.origAddress));
-        
-        if (it == partyTable.end()){
-            // originator was not in table
-            addNewPartyMember(prefix);
-            rebound(prefix, buf);
-        } else if (prefix.messageId > it->lastMessageId){
-            // we haven't seen this message before
-            it->lastMessageId = prefix.messageId;
-            it->lastSeen = system_timer_current_time();
-            rebound(prefix, buf);
-        }
+        return true;
     }
 
     Payload getStringPayload(uint8_t* buf, uint8_t maxLength) {
@@ -244,52 +226,42 @@ namespace PartiesInternal {
 
         if (prefix.origAddress == microbit_serial_number()) return;
 
-        switch(prefix.type)
+        // Only handle the packet if it's not been seen (and thus handled) already.
+        if (!messageSeenBefore(prefix))
         {
-            case PacketType::HEARTBEAT:
-                receiveHeartbeat(prefix, buf);
-                break;
+            switch(prefix.type)
+            {
+                case PacketType::HEARTBEAT:
+                    rebound(prefix, buf);
+                    break;
 
-            // For the following packet types, only handle the message if we haven't seen it already.
-            case PacketType::UNICAST_STRING:
-            case PacketType::UNICAST_NUMBER:
-            case PacketType::BROADCAST_STRING:
-            case PacketType::BROADCAST_NUMBER:
-                if (messageNotSeenBefore(prefix)) {
-                    switch (prefix.type)
-                    {
-                        case PacketType::UNICAST_STRING:
-                            if (prefix.destAddress == microbit_serial_number()) {
-                                receiveString(buf);
-                            }
-                            else rebound(prefix, buf);    
-                            break;
-                        
-                        case PacketType::UNICAST_NUMBER:
-                            if (prefix.destAddress == microbit_serial_number()) {
-                                receiveNumber(buf);
-                            }
-                            else rebound(prefix, buf);
-                            break;
-
-                        case PacketType::BROADCAST_STRING:
-                            receiveString(buf);
-                            rebound(prefix, buf);
-                            break;
-
-                        case PacketType::BROADCAST_NUMBER:
-                            receiveNumber(buf);
-                            rebound(prefix, buf);
-                            break;
-
-                        default: 
-                            break;
+                case PacketType::UNICAST_STRING:
+                    if (prefix.destAddress == microbit_serial_number()) {
+                        receiveString(buf);
                     }
-                }
-                break;
+                    else rebound(prefix, buf);    
+                    break;
+                
+                case PacketType::UNICAST_NUMBER:
+                    if (prefix.destAddress == microbit_serial_number()) {
+                        receiveNumber(buf);
+                    }
+                    else rebound(prefix, buf);
+                    break;
 
-            default: 
-                break;
+                case PacketType::BROADCAST_STRING:
+                    receiveString(buf);
+                    rebound(prefix, buf);
+                    break;
+
+                case PacketType::BROADCAST_NUMBER:
+                    receiveNumber(buf);
+                    rebound(prefix, buf);
+                    break;
+
+                default: 
+                    break;
+            }
         }
     }
 
