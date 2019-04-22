@@ -127,12 +127,10 @@ namespace PartiesInternal {
                 uBit.radio.datagram.send(buf, PREFIX_LENGTH + stringLen + 1);
                 break;
 
-            /*
             case PacketType::UNICAST_NUMBER:
             case PacketType::BROADCAST_NUMBER:
-                uBit.radio.datagram.send(buf, PREFIX_LENGTH + NUMBER_PAYLOAD_LENGTH);
+                uBit.radio.datagram.send(buf, PREFIX_LENGTH + sizeof(int));
                 break;
-            */
 
             default:
                 break;
