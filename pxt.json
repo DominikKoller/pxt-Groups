@@ -8,9 +8,8 @@
     },
     "files": [
         "README.md",
-        "main.ts",
-        "HandlePackets.cpp",
-        "HandlePackets.ts",
+        "parties.ts",
+        "parties.cpp",
         "shims.d.ts",
         "enums.d.ts"
     ],
