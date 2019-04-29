@@ -7,10 +7,20 @@ namespace parties {
     let stringCallback: (s: string) => void = () => {};
     let numberCallback: (n: number) => void = () => {};
 
+    /**
+     * Registers code to run when the radio receives a string in the party
+     */
+    //% blockId=party_on_string
+    //% draggableParameters=reporter
     export function onStringReceived(c: (receivedString: string) => void) {
         stringCallback = c;
     }
 
+    /**
+     * Registers code to run when the radio receives a number in the party
+     */
+    //% blockId=party_on_number
+    //% draggableParameters=reporter
     export function onNumberReceived(cb: (receivedNo: number) => void) {
         numberCallback = cb;
     }
