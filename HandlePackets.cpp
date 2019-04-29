@@ -53,6 +53,9 @@ struct Payload { String stringValue; int numValue; };
 namespace PartiesInternal {
 
     bool radioEnabled = false;
+    
+    String partyName = NULL;
+    int partyRadioGroup = 0;
 
     uint8_t ownMessageId = 0;
 
@@ -68,12 +71,23 @@ namespace PartiesInternal {
             return r;
         }
         if (!radioEnabled) {
-            // TODO: Set the radio group based on which party we are joining
-            uBit.radio.setGroup(1);//pxt::programHash());
+            uBit.radio.setGroup(partyRadioGroup);
             uBit.radio.setTransmitPower(6); // start with high power by default
             radioEnabled = true;
         }
         return r;
+    }
+
+    /** 
+     * Configures the party name and radio group. 
+     */
+    //%
+    void joinParty(String name) {
+        if (name != partyName) {
+            partyName = name;
+            partyRadioGroup = hash<string>{}(partyName->getUTF8Data()) % 256;
+            uBit.radio.setGroup(partyRadioGroup);
+        }
     }
 
     bool isOldEntry(PartyMember member){
@@ -155,36 +169,64 @@ namespace PartiesInternal {
     }
 
     /** 
-     * Checks whether this message has been seen before, and if not, updates the party table.
+     * Checks whether this message needs handling, updating the party table where necessary.
      */
-    bool messageSeenBefore(Prefix prefix) {
+    bool messageNeedsHandling(Prefix prefix, bool ignoreUnrecognisedMicrobits) {
         std::vector<PartyMember>::iterator sender = 
             std::find_if (partyTable.begin(), partyTable.end(), hasAddress(prefix.origAddress));
 
         if (sender == partyTable.end()) {
-            // Sender not recognised, so create a new entry for them in partyTable.
-            addNewPartyMember(prefix);
-            return false;
+            // Sender not recognised, so either add a new entry for them in partyTable, or ignore
+            // the message completely.
+            if (!ignoreUnrecognisedMicrobits) {
+                addNewPartyMember(prefix);
+            }
+            // This message needs handling if and only if we're not ignoring unrecognised microbits.
+            return !ignoreUnrecognisedMicrobits;
         }
         else if (prefix.messageId > sender->lastMessageId) {
             // We haven't seen this message before, so update partyTable.
             sender->lastMessageId = prefix.messageId;
             sender->lastSeen = system_timer_current_time();
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
 
-    Payload getStringPayload(uint8_t* buf, uint8_t maxLength) {
+    String getStringValue(uint8_t* buf, uint8_t maxLength) {
         // First byte is the string length
         uint8_t len = min_(maxLength, buf[0]);
-        Payload payload;
-        payload.stringValue = mkString((char*)buf + 1, len);
-        return payload;
+        return mkString((char*)buf + 1, len);
+    }
+
+    // To-do: replace this. Was having real trouble comapring Strings (uppercase S).
+    // e.g. x->getUTF8Data() == y->getUTF8Data() was returning false when x and y were equal.
+    bool equal(String x, String y) {
+        string X = x->getUTF8Data();
+        string Y = y->getUTF8Data();
+        return X == Y;
+    }
+
+    /** 
+     * Checks whether the heartbeat message is from a microbit in our party, and if so, handles
+     * it accordingly.
+     */
+    void receiveHeartbeat(Prefix prefix, uint8_t* buf) {
+        if (partyName == NULL) return;
+
+        String otherPartyName = getStringValue(buf + PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
+        if (equal(partyName, otherPartyName) && messageNeedsHandling(prefix, false))
+        {
+            // This is a heartbeat message from a microbit in our party, and we haven't seen it
+            // before, so rebound it.
+            rebound(prefix, buf);
+        }
     }
 
     void receiveString(uint8_t* buf) {
-        lastPayload = getStringPayload(buf + PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
+        Payload payload;
+        payload.stringValue = getStringValue(buf + PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
+        lastPayload = payload;
         lastPayloadType = PayloadType::STRING;
     }
 
@@ -194,18 +236,6 @@ namespace PartiesInternal {
         lastPayload = payload;
         lastPayloadType = PayloadType::NUM;
     }    
-
-    uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
-        uint8_t len = min_(maxLength, data->getUTF8Size());
-
-        // One byte for length of the string
-        buf[0] = len;
-
-        if (len > 0) {
-            memcpy(buf + 1, data->getUTF8Data(), len);
-        }
-        return len + 1;
-    }
 
     /**
      * Read a packet from the queue of received packets and react accordingly
@@ -224,15 +254,15 @@ namespace PartiesInternal {
 
         if (prefix.origAddress == microbit_serial_number()) return;
 
-        // Only handle the packet if it's not been seen (and thus handled) already.
-        if (!messageSeenBefore(prefix))
+        // Handle heartbeat messages separately to those with 'actual' data.
+        if (prefix.type == PacketType::HEARTBEAT) {
+            receiveHeartbeat(prefix, buf);
+        }
+
+        else if (messageNeedsHandling(prefix, true))
         {
             switch(prefix.type)
             {
-                case PacketType::HEARTBEAT:
-                    rebound(prefix, buf);
-                    break;
-
                 case PacketType::UNICAST_STRING:
                     if (prefix.destAddress == microbit_serial_number()) {
                         receiveString(buf);
@@ -271,23 +301,16 @@ namespace PartiesInternal {
         memcpy(buf+10,  &(prefix.hopCount), 1);
     }
 
-    /** 
-     * To be called at Heartbeat Frequency
-     */
-    //%
-    void sendHeartbeat(){
-        ownMessageId++;
+    uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
+        uint8_t len = min_(maxLength, data->getUTF8Size());
 
-        uint8_t buf[PREFIX_LENGTH];
-        Prefix prefix;
-        prefix.type         = PacketType::HEARTBEAT;
-        prefix.messageId    = ownMessageId;
-        prefix.origAddress  = microbit_serial_number();
-        prefix.destAddress  = 0;
-        prefix.hopCount     = 1;
+        // One byte for length of the string
+        buf[0] = len;
 
-        setPacketPrefix(buf, prefix);
-        uBit.radio.datagram.send(buf, PREFIX_LENGTH);
+        if (len > 0) {
+            memcpy(buf + 1, data->getUTF8Data(), len);
+        }
+        return len + 1;
     }
 
     void sendString(String msg, PacketType packetType, uint32_t destAddress) {
@@ -308,6 +331,14 @@ namespace PartiesInternal {
         int stringLen = copyStringValue(buf + PREFIX_LENGTH, msg, MAX_PAYLOAD_LENGTH  - 1);
         
         uBit.radio.datagram.send(buf, PREFIX_LENGTH + stringLen);
+    }
+
+    /** 
+     * To be called at Heartbeat Frequency
+     */
+    //%
+    void sendHeartbeat(){
+        sendString(partyName, PacketType::HEARTBEAT, 0);
     }
 
     /**

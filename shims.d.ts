@@ -1,6 +1,12 @@
 // Auto-generated. Do not edit.
 declare namespace PartiesInternal {
 
+    /** 
+     * Configures the party name and radio group. 
+     */
+    //% shim=PartiesInternal::joinParty
+    function joinParty(name: string): void;
+
     /**
      * Filters out old entries in the table
      * Also call at HEARTBEAT_FREQUENCY from TS
