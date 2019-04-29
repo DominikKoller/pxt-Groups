@@ -276,6 +276,7 @@ namespace PartiesInternal {
      */
     //%
     void sendHeartbeat(){
+        if (radioEnable() != MICROBIT_OK) return;
         ownMessageId++;
 
         uint8_t buf[PREFIX_LENGTH];
