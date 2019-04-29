@@ -350,17 +350,19 @@ namespace parties {
     /**
      * Send a number to all micro:bits in the party.
      */
-    //%
-    void broadcastNumber(int number) {
-        sendNumber(number, PacketType::BROADCAST_NUMBER, 0);
+    //% weight=60
+    //% blockId=party_broadcast_number block="Send %value to all party members"
+    void broadcastNumber(TNumber number) {
+        sendNumber(toInt(number), PacketType::BROADCAST_NUMBER, 0);
     }
 
     /**
      * Send a number to the micro:bit with the specified address
      */
-    //%
-    void unicastNumber(int number, uint32_t destAddress) {
-        sendNumber(number, PacketType::UNICAST_NUMBER, destAddress);
+    //% weight=60
+    //% blockId=party_broadcast_number block="Send %number to %destAddress"
+    void unicastNumber(TNumber number, uint32_t destAddress) {
+        sendNumber(toInt(number), PacketType::UNICAST_NUMBER, destAddress);
     }
 
     void resetPayload(){
