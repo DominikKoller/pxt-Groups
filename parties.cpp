@@ -360,7 +360,7 @@ namespace parties {
      * Send a number to the micro:bit with the specified address
      */
     //% weight=60
-    //% blockId=party_broadcast_number block="Send %number to %destAddress"
+    //% blockId=party_unicast_number block="Send %number to %destAddress"
     void unicastNumber(TNumber number, TNumber destAddress) {
         sendNumber(toInt(number), PacketType::UNICAST_NUMBER, toInt(destAddress));
     }
