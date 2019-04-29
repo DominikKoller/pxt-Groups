@@ -301,8 +301,18 @@ namespace PartiesInternal {
         memcpy(buf+10,  &(prefix.hopCount), 1);
     }
 
+<<<<<<< HEAD
     uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
         uint8_t len = min_(maxLength, data->getUTF8Size());
+=======
+    /** 
+     * To be called at Heartbeat Frequency
+     */
+    //%
+    void sendHeartbeat(){
+        if (radioEnable() != MICROBIT_OK) return;
+        ownMessageId++;
+>>>>>>> dea142e27e0330e2aa954146e4d9cb648427f3fe
 
         // One byte for length of the string
         buf[0] = len;
