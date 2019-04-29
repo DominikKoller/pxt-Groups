@@ -1,3 +1,7 @@
+/**
+ * Radio communication for groups
+ */
+//% color=#00d3ea weight=100
 namespace parties {
 
     let stringCallback: (s: string) => void = () => {};
