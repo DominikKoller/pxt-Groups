@@ -392,13 +392,15 @@ namespace parties {
     /**
      * Numer of Party Members
      */
-    //%
-    int numberOfPartyMembers() { return partyTable.size(); }
+    //% weight=40
+    //% blockId=party_size block="party size"
+    int partySize() { return partyTable.size(); }
 
     /**
      * Random Party Member
      */
-    //%
+    //% weight=60
+    //% blockId=random_party_member block="random party member"
     uint32_t randomPartyMember() {
         if(partyTable.size() == 0)
             return -1;
