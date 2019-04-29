@@ -50,7 +50,7 @@ struct Payload { String stringValue; int numValue; };
 // ------------------------------------------------------------------------
 // | type   | messageID | origAddress | destAddress | hopCount | payload  |
 
-namespace PartiesInternal {
+namespace parties {
 
     bool radioEnabled = false;
 

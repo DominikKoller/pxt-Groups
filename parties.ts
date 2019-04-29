@@ -1,4 +1,4 @@
-namespace PartiesInternal {
+namespace parties {
 
     let stringCallback: (s: string) => void = () => {};
     let numberCallback: (n: number) => void = () => {};
@@ -16,20 +16,20 @@ namespace PartiesInternal {
     // see https://makecode.microbit.org/device/reactive
     control.inBackground(function () {
         while (true) {
-            PartiesInternal.filterTable();
-            PartiesInternal.sendHeartbeat();
-            basic.pause(PartiesInternal.getHeartbeatFrequency());
+            parties.filterTable();
+            parties.sendHeartbeat();
+            basic.pause(parties.getHeartbeatFrequency());
         }
     });
 
-    PartiesInternal.onDataReceived(() => {
-        PartiesInternal.receiveData();
-        switch(PartiesInternal.receivedPayloadType()){
+    parties.onDataReceived(() => {
+        parties.receiveData();
+        switch(parties.receivedPayloadType()){
             case PayloadType.STRING:
-                stringCallback(PartiesInternal.receivedStringPayload());
+                stringCallback(parties.receivedStringPayload());
                 break;
             case PayloadType.NUM:
-                numberCallback(PartiesInternal.receivedNumberPayload());
+                numberCallback(parties.receivedNumberPayload());
                 break;
 
 
