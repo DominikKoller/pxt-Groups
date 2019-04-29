@@ -361,8 +361,8 @@ namespace parties {
      */
     //% weight=60
     //% blockId=party_broadcast_number block="Send %number to %destAddress"
-    void unicastNumber(TNumber number, uint32_t destAddress) {
-        sendNumber(toInt(number), PacketType::UNICAST_NUMBER, destAddress);
+    void unicastNumber(TNumber number, TNumber destAddress) {
+        sendNumber(toInt(number), PacketType::UNICAST_NUMBER, toInt(destAddress));
     }
 
     void resetPayload(){
