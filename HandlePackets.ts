@@ -1,7 +1,7 @@
 namespace PartiesInternal {
 
-    let stringCallback: (s: string) => void;
-    let numberCallback: (n: number) => void; 
+    let stringCallback: (s: string) => void = () => {};
+    let numberCallback: (n: number) => void = () => {};
 
     export function onStringReceived(c: (receivedString: string) => void) {
         stringCallback = c;
