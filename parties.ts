@@ -10,7 +10,7 @@ namespace parties {
     /**
      * Registers code to run when the radio receives a string in the party
      */
-    //% block
+    //% block="on string received"
     //% blockId=party_on_string
     //% draggableParameters=reporter
     export function onStringReceived(c: (receivedString: string) => void) {
@@ -20,7 +20,7 @@ namespace parties {
     /**
      * Registers code to run when the radio receives a number in the party
      */
-    //% block
+    //% block="on number received"
     //% blockId=party_on_number
     //% draggableParameters=reporter
     export function onNumberReceived(cb: (receivedNo: number) => void) {
