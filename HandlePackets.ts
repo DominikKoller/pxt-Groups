@@ -11,10 +11,15 @@ namespace PartiesInternal {
         numberCallback = cb;
     }
 
-    basic.forever(() => {
-        PartiesInternal.filterTable();
-        PartiesInternal.sendHeartbeat();
-        basic.pause(PartiesInternal.getHeartbeatFrequency());
+    // basic.forever will call inBackground with while(true) and basic.pause(20)
+    // using control.inBackground to avoid that
+    // see https://makecode.microbit.org/device/reactive
+    control.inBackground(function () {
+        while (true) {
+            PartiesInternal.filterTable();
+            PartiesInternal.sendHeartbeat();
+            basic.pause(PartiesInternal.getHeartbeatFrequency());
+        }
     });
 
     PartiesInternal.onDataReceived(() => {
