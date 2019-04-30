@@ -61,7 +61,7 @@ namespace parties {
     Payload lastPayload;
     PayloadType lastPayloadType = NONE;
 
-    std::optional<std::string> status{};
+    string status = nullptr; 
 
     void setStatus(string s) = {status = s;}
     
@@ -226,13 +226,13 @@ namespace parties {
         memcpy(&(prefix.origAddress), buf+2,  4);
         memcpy(&(prefix.destAddress), buf+6,  4);
         memcpy(&(prefix.hopCount),    buf+10, 1);
-        int statusAvailable = buf[PREFIX_LENGTH]
+        int statusAvailable = buf[PREFIX_LENGTH];
         
         if (statusAvailable) {
             int len = buf[PREFIX_LENGTH+1];
-            string tmp;
-            memcpy(&tmp, buf+PREFIX_LENGTH+1, len);
-            status = tmp; 
+            
+            memcpy(&status, buf+PREFIX_LENGTH+1, len);
+             
         }
 
         if (prefix.origAddress == microbit_serial_number()) return;
@@ -303,8 +303,8 @@ namespace parties {
 
         int stringlen = 1; 
         setPacketPrefix(buf, prefix);
-        if (status.has_value) {
-            buf[PREFIX_LENGTH] = 1 //indicates that there's a status
+        if (status != nullptr) {
+            buf[PREFIX_LENGTH] = 1; //indicates that there's a status
             stringLen += copyStringValue(buf + PREFIX_LENGTH+1, status.value, MAX_PAYLOAD_LENGTH  - 2);
         }
         else {
