@@ -61,6 +61,9 @@ namespace parties {
     Payload lastPayload;
     PayloadType lastPayloadType = NONE;
 
+    String partyName = NULL;
+    int partyRadioGroup = 0;
+
     int radioEnable() {
         int r = uBit.radio.enable();
         if (r != MICROBIT_OK) {
@@ -68,12 +71,24 @@ namespace parties {
             return r;
         }
         if (!radioEnabled) {
-            // TODO: Set the radio group based on which party we are joining
-            uBit.radio.setGroup(1);//pxt::programHash());
+            uBit.radio.setGroup(partyRadioGroup);
             uBit.radio.setTransmitPower(6); // start with high power by default
             radioEnabled = true;
         }
         return r;
+    }
+
+    /** 
+     * Configures the party name and radio group. 
+     */
+    //% weight=60
+    //% blockId=join_party block="join party %name"
+    void joinParty(String name) {
+        if (name != partyName) {
+            partyName = name;
+            partyRadioGroup = hash<string>{}(partyName->getUTF8Data()) % 256;
+            uBit.radio.setGroup(partyRadioGroup);
+        }
     }
 
     bool isOldEntry(PartyMember member){
@@ -155,36 +170,65 @@ namespace parties {
     }
 
     /** 
-     * Checks whether this message has been seen before, and if not, updates the party table.
+     * Checks whether this message needs handling, updating partyTable where necessary.
      */
-    bool messageSeenBefore(Prefix prefix) {
+    bool messageNeedsHandling(Prefix prefix, bool ignoreUnrecognisedMicrobits) {
         std::vector<PartyMember>::iterator sender = 
             std::find_if (partyTable.begin(), partyTable.end(), hasAddress(prefix.origAddress));
 
         if (sender == partyTable.end()) {
-            // Sender not recognised, so create a new entry for them in partyTable.
-            addNewPartyMember(prefix);
-            return false;
+            // Sender not recognised, so either add a new entry for them in partyTable, or ignore
+            // the message completely.
+            if (!ignoreUnrecognisedMicrobits) {
+                addNewPartyMember(prefix);
+            }
+            // This message needs handling if and only if we're not ignoring unrecognised microbits.
+            return !ignoreUnrecognisedMicrobits;
         }
         else if (prefix.messageId > sender->lastMessageId) {
             // We haven't seen this message before, so update partyTable.
             sender->lastMessageId = prefix.messageId;
             sender->lastSeen = system_timer_current_time();
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
 
-    Payload getStringPayload(uint8_t* buf, uint8_t maxLength) {
+    String getStringValue(uint8_t* buf, uint8_t maxLength) {
         // First byte is the string length
         uint8_t len = min_(maxLength, buf[0]);
-        Payload payload;
-        payload.stringValue = mkString((char*)buf + 1, len);
-        return payload;
+        return mkString((char*)buf + 1, len);
+    }
+
+    // To-do: replace this. Was having real trouble comapring Strings (uppercase S).
+    // e.g. x->getUTF8Data() == y->getUTF8Data() was returning false when x and y were equal.
+    // Hopefully I'm just doing something stupid.
+    bool equal(String x, String y) {
+        string X = x->getUTF8Data();
+        string Y = y->getUTF8Data();
+        return X == Y;
+    }
+
+    /** 
+     * Checks whether the heartbeat message is from a microbit in our party, and if so, handles
+     * it accordingly.
+     */
+    void receiveHeartbeat(Prefix prefix, uint8_t* buf) {
+        if (partyName == NULL) return;
+
+        String otherPartyName = getStringValue(buf + PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
+        if (equal(partyName, otherPartyName) && messageNeedsHandling(prefix, false))
+        {
+            // This is a heartbeat message from a microbit in our party, and we haven't seen it
+            // before, so rebound it.
+            rebound(prefix, buf);
+        }
     }
 
     void receiveString(uint8_t* buf) {
-        lastPayload = getStringPayload(buf + PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
+        Payload payload;
+        payload.stringValue = getStringValue(buf + PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
+        lastPayload = payload;
         lastPayloadType = PayloadType::STRING;
     }
 
@@ -194,19 +238,6 @@ namespace parties {
         lastPayload = payload;
         lastPayloadType = PayloadType::NUM;
     }    
-
-    // commented out to find weirdo bug in online editor
-    // uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
-    //     uint8_t len = min_(maxLength, data->);
-
-    //     // One byte for length of the string
-    //     buf[0] = len;
-
-    //     if (len > 0) {
-    //         memcpy(buf + 1, data->getUTF8Data(), len);
-    //     }
-    //     return len + 1;
-    // }
 
     /**
      * Read a packet from the queue of received packets and react accordingly
@@ -225,15 +256,15 @@ namespace parties {
 
         if (prefix.origAddress == microbit_serial_number()) return;
 
-        // Only handle the packet if it's not been seen (and thus handled) already.
-        if (!messageSeenBefore(prefix))
+        // Handle heartbeat messages separately to those with 'actual' data.
+        if (prefix.type == PacketType::HEARTBEAT) {
+            receiveHeartbeat(prefix, buf);
+        }
+
+        else if (messageNeedsHandling(prefix, true))
         {
             switch(prefix.type)
             {
-                case PacketType::HEARTBEAT:
-                    rebound(prefix, buf);
-                    break;
-
                 case PacketType::UNICAST_STRING:
                     if (prefix.destAddress == microbit_serial_number()) {
                         receiveString(buf);
@@ -272,64 +303,61 @@ namespace parties {
         memcpy(buf+10,  &(prefix.hopCount), 1);
     }
 
+    uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
+        uint8_t len = min_(maxLength, data->getUTF8Size());
+
+        // One byte for length of the string
+        buf[0] = len;
+
+        if (len > 0) {
+            memcpy(buf + 1, data->getUTF8Data(), len);
+        }
+        return len + 1;
+    }
+
+    void sendString(String msg, PacketType packetType, uint32_t destAddress) {
+        if (radioEnable() != MICROBIT_OK || NULL == msg) return;
+
+        ownMessageId++;
+        uint8_t buf[32];
+        memset(buf, 0, 32);
+
+        Prefix prefix;
+        prefix.type = packetType;
+        prefix.messageId = ownMessageId;
+        prefix.origAddress = microbit_serial_number();
+        prefix.destAddress = destAddress;
+        prefix.hopCount = 1;
+        setPacketPrefix(buf, prefix);
+
+        int stringLen = copyStringValue(buf + PREFIX_LENGTH, msg, MAX_PAYLOAD_LENGTH  - 1);
+        
+        uBit.radio.datagram.send(buf, PREFIX_LENGTH + stringLen);
+    }
+
     /** 
-     * To be called at Heartbeat Frequency
+     * To be called at HEARTBEAT_FREQUENCY.
      */
     //%
     void sendHeartbeat(){
-        if (radioEnable() != MICROBIT_OK) return;
-        ownMessageId++;
-
-        uint8_t buf[PREFIX_LENGTH];
-        Prefix prefix;
-        prefix.type         = PacketType::HEARTBEAT;
-        prefix.messageId    = ownMessageId;
-        prefix.origAddress  = microbit_serial_number();
-        prefix.destAddress  = 0;
-        prefix.hopCount     = 1;
-
-        setPacketPrefix(buf, prefix);
-        uBit.radio.datagram.send(buf, PREFIX_LENGTH);
+        sendString(partyName, PacketType::HEARTBEAT, 0);
     }
 
-    // commented out to find weirdo bug in online editor
-    // void sendString(String msg, PacketType packetType, uint32_t destAddress) {
-    //     if (radioEnable() != MICROBIT_OK || NULL == msg) return;
+    /**
+     * Send a string to all micro:bits in the party.
+     */
+    //%
+    void broadcastString(String message) {
+        sendString(message, PacketType::BROADCAST_STRING, 0);
+    }
 
-    //     ownMessageId++;
-    //     uint8_t buf[32];
-    //     memset(buf, 0, 32);
-
-    //     Prefix prefix;
-    //     prefix.type = packetType;
-    //     prefix.messageId = ownMessageId;
-    //     prefix.origAddress = microbit_serial_number();
-    //     prefix.destAddress = destAddress;
-    //     prefix.hopCount = 1;
-    //     setPacketPrefix(buf, prefix);
-
-    //     int stringLen = copyStringValue(buf + PREFIX_LENGTH, msg, MAX_PAYLOAD_LENGTH  - 1);
-        
-    //     uBit.radio.datagram.send(buf, PREFIX_LENGTH + stringLen);
-    // }
-
-    // commented out to find weirdo bug in online editor
-    // /**
-    //  * Send a string to all micro:bits in the party.
-    //  */
-    // //%
-    // void broadcastString(String message) {
-    //     sendString(message, PacketType::BROADCAST_STRING, 0);
-    // }
-
-    // commented out to find weirdo bug in online editor
-    // /**
-    //  * Send a string to the micro:bit with the specified address
-    //  */
-    // //%
-    // void unicastString(String message, uint32_t destAddress) {
-    //     sendString(message, PacketType::UNICAST_STRING, destAddress);
-    // }
+    /**
+     * Send a string to the micro:bit with the specified address
+     */
+    //%
+    void unicastString(String message, uint32_t destAddress) {
+        sendString(message, PacketType::UNICAST_STRING, destAddress);
+    }
 
     void sendNumber(int num, PacketType packetType, uint32_t destAddress){
         if (radioEnable() != MICROBIT_OK) return;
@@ -355,7 +383,7 @@ namespace parties {
      * Send a number to all micro:bits in the party.
      */
     //% weight=60
-    //% blockId=party_broadcast_number block="Send %value to all party members"
+    //% blockId=party_broadcast_number block="send %value to all party members"
     void broadcastNumber(TNumber number) {
         sendNumber(toInt(number), PacketType::BROADCAST_NUMBER, 0);
     }
@@ -364,7 +392,7 @@ namespace parties {
      * Send a number to the micro:bit with the specified address
      */
     //% weight=60
-    //% blockId=party_unicast_number block="Send %number to %destAddress"
+    //% blockId=party_unicast_number block="send %number to %destAddress"
     void unicastNumber(TNumber number, TNumber destAddress) {
         sendNumber(toInt(number), PacketType::UNICAST_NUMBER, toInt(destAddress));
     }

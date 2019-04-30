@@ -27,9 +27,6 @@ namespace parties {
         numberCallback = cb;
     }
 
-    //% block
-    export function joinParty(name: string) { }
-
     // basic.forever will call inBackground with while(true) and basic.pause(20)
     // using control.inBackground to avoid that
     // see https://makecode.microbit.org/device/reactive
