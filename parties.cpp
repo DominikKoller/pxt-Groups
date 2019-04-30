@@ -200,8 +200,6 @@ namespace parties {
         lastPayloadType = PayloadType::NUM;
     }    
 
-     //was previously commented out to find weirdo bug in online editor...bug still not found
-
      uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
          uint8_t len = min_(maxLength, data->);
 
@@ -315,46 +313,41 @@ namespace parties {
         uBit.radio.datagram.send(buf, PREFIX_LENGTH+stringlen);
     }
 
+    void sendString(String msg, PacketType packetType, uint32_t destAddress) {
+        if (radioEnable() != MICROBIT_OK || NULL == msg) return;
 
+        ownMessageId++;
+        uint8_t buf[32];
+        memset(buf, 0, 32);
 
-    // commented out to find weirdo bug in online editor
-    // void sendString(String msg, PacketType packetType, uint32_t destAddress) {
-    //     if (radioEnable() != MICROBIT_OK || NULL == msg) return;
+        Prefix prefix;
+        prefix.type = packetType;
+        prefix.messageId = ownMessageId;
+        prefix.origAddress = microbit_serial_number();
+        prefix.destAddress = destAddress;
+        prefix.hopCount = 1;
+        setPacketPrefix(buf, prefix);
 
-    //     ownMessageId++;
-    //     uint8_t buf[32];
-    //     memset(buf, 0, 32);
-
-    //     Prefix prefix;
-    //     prefix.type = packetType;
-    //     prefix.messageId = ownMessageId;
-    //     prefix.origAddress = microbit_serial_number();
-    //     prefix.destAddress = destAddress;
-    //     prefix.hopCount = 1;
-    //     setPacketPrefix(buf, prefix);
-
-    //     int stringLen = copyStringValue(buf + PREFIX_LENGTH, msg, MAX_PAYLOAD_LENGTH  - 1);
+        int stringLen = copyStringValue(buf + PREFIX_LENGTH, msg, MAX_PAYLOAD_LENGTH  - 1);
         
-    //     uBit.radio.datagram.send(buf, PREFIX_LENGTH + stringLen);
-    // }
+        uBit.radio.datagram.send(buf, PREFIX_LENGTH + stringLen);
+    }
 
-    // commented out to find weirdo bug in online editor
-    // /**
-    //  * Send a string to all micro:bits in the party.
-    //  */
-    // //%
-    // void broadcastString(String message) {
-    //     sendString(message, PacketType::BROADCAST_STRING, 0);
-    // }
+    /**
+     * Send a string to all micro:bits in the party.
+     */
+    //%
+    void broadcastString(String message) {
+        sendString(message, PacketType::BROADCAST_STRING, 0);
+    }
 
-    // commented out to find weirdo bug in online editor
-    // /**
-    //  * Send a string to the micro:bit with the specified address
-    //  */
-    // //%
-    // void unicastString(String message, uint32_t destAddress) {
-    //     sendString(message, PacketType::UNICAST_STRING, destAddress);
-    // }
+    /**
+     * Send a string to the micro:bit with the specified address
+     */
+    //%
+    void unicastString(String message, uint32_t destAddress) {
+        sendString(message, PacketType::UNICAST_STRING, destAddress);
+    }
 
     void sendNumber(int num, PacketType packetType, uint32_t destAddress){
         if (radioEnable() != MICROBIT_OK) return;
