@@ -200,18 +200,19 @@ namespace parties {
         lastPayloadType = PayloadType::NUM;
     }    
 
-    // commented out to find weirdo bug in online editor
-    // uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
-    //     uint8_t len = min_(maxLength, data->);
+     //was previously commented out to find weirdo bug in online editor...bug still not found
 
-    //     // One byte for length of the string
-    //     buf[0] = len;
+     uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
+         uint8_t len = min_(maxLength, data->);
 
-    //     if (len > 0) {
-    //         memcpy(buf + 1, data->getUTF8Data(), len);
-    //     }
-    //     return len + 1;
-    // }
+         // One byte for length of the string
+         buf[0] = len;
+
+         if (len > 0) {
+             memcpy(buf + 1, data->getUTF8Data(), len);
+         }
+         return len + 1;
+     }
 
     /**
      * Read a packet from the queue of received packets and react accordingly
@@ -285,7 +286,7 @@ namespace parties {
         if (radioEnable() != MICROBIT_OK) return;
         ownMessageId++;
 
-        uint8_t buf[PREFIX_LENGTH];
+        uint8_t buf[PREFIX_LENGTH+MAX_PAYLOAD_LENGTH];
         Prefix prefix;
         prefix.type         = PacketType::HEARTBEAT;
         prefix.messageId    = ownMessageId;
@@ -293,9 +294,20 @@ namespace parties {
         prefix.destAddress  = 0;
         prefix.hopCount     = 1;
 
+
+        int stringlen = 1; 
         setPacketPrefix(buf, prefix);
-        uBit.radio.datagram.send(buf, PREFIX_LENGTH);
+        if (status.has_value) {
+            buf[PREFIX_LENGTH] = 1 //indicates that there's a status
+            stringLen += copyStringValue(buf + PREFIX_LENGTH+1, status.value, MAX_PAYLOAD_LENGTH  - 2);
+        }
+        else {
+            buf[PREFIX_LENGTH] = 0; //indicates that there's no status 
+        }
+        uBit.radio.datagram.send(buf, PREFIX_LENGTH+stringlen);
     }
+
+    
 
     // commented out to find weirdo bug in online editor
     // void sendString(String msg, PacketType packetType, uint32_t destAddress) {
