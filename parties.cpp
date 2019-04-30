@@ -1,4 +1,5 @@
 #include "pxt.h"
+
 #include <algorithm>
 #include <vector>
 using namespace pxt;
@@ -63,7 +64,7 @@ namespace parties {
 
     string status = nullptr; 
 
-    void setStatus(string s) = {status = s;}
+    void setStatus(string s)  {status.assign(s);}
     
 
     int radioEnable() {
