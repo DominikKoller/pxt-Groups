@@ -3,7 +3,7 @@
 #include <vector>
 using namespace pxt;
 
-#define MAX_PAYLOAD_LENGTH 19
+#define MAX_PAYLOAD_LENGTH 19 
 #define PREFIX_LENGTH 11
 
 #define MAX_HOP_COUNT 1
@@ -60,6 +60,11 @@ namespace parties {
 
     Payload lastPayload;
     PayloadType lastPayloadType = NONE;
+
+    std::optional<std::string> status{};
+
+    void setStatus(string s) = {status = s;}
+    
 
     int radioEnable() {
         int r = uBit.radio.enable();
