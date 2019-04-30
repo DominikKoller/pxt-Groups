@@ -228,6 +228,14 @@ namespace parties {
         memcpy(&(prefix.origAddress), buf+2,  4);
         memcpy(&(prefix.destAddress), buf+6,  4);
         memcpy(&(prefix.hopCount),    buf+10, 1);
+        int statusAvailable = buf[PREFIX_LENGTH]
+        
+        if (statusAvailable) {
+            int len = buf[PREFIX_LENGTH+1];
+            string tmp;
+            memcpy(&tmp, buf+PREFIX_LENGTH+1, len);
+            status = tmp; 
+        }
 
         if (prefix.origAddress == microbit_serial_number()) return;
 
@@ -307,7 +315,7 @@ namespace parties {
         uBit.radio.datagram.send(buf, PREFIX_LENGTH+stringlen);
     }
 
-    
+
 
     // commented out to find weirdo bug in online editor
     // void sendString(String msg, PacketType packetType, uint32_t destAddress) {
