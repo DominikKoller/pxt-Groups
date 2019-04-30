@@ -40,6 +40,7 @@ struct PartyMember {
     uint32_t address;
     uint32_t lastSeen;
     uint8_t lastMessageId;
+    String status;
 };
 
 struct Payload { String stringValue; int numValue; };
@@ -61,11 +62,22 @@ namespace parties {
     Payload lastPayload;
     PayloadType lastPayloadType = NONE;
 
-    string status = nullptr; 
+    String status = mkString("", 0);
 
-    void setStatus(string s) = {status = s;}
+    /**
+     * Set your own status, for others to see.
+     */
+    //% weight=60
+    //% blockId=set_status block="Set my status to %s"
+    void setStatus(String s) { status = s; }
+
+    /**
+     * Your own current status.
+     */
+    //% weight=60
+    //% blockId=get_status block="my status"
+    String getStatus() { return status; }
     
-
     int radioEnable() {
         int r = uBit.radio.enable();
         if (r != MICROBIT_OK) {
@@ -193,6 +205,19 @@ namespace parties {
         lastPayloadType = PayloadType::STRING;
     }
 
+    /** 
+     * Puts the status of a heartbeat into the corresponding entry in the party table.
+     */
+    void receiveHeartbeat(Prefix prefix, uint8_t* buf) {
+        std::vector<PartyMember>::iterator sender = 
+            std::find_if (partyTable.begin(), partyTable.end(), hasAddress(prefix.origAddress));
+
+        if (sender != partyTable.end()) {
+            Payload p = getStringPayload(buf + PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
+            sender->status = p.stringValue;
+        }
+    }
+
     void receiveNumber(uint8_t* buf) {
         Payload payload;
         memcpy(&payload.numValue, buf+PREFIX_LENGTH, sizeof(int));
@@ -201,7 +226,7 @@ namespace parties {
     }    
 
      uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
-         uint8_t len = min_(maxLength, data->);
+         uint8_t len = min_(maxLength, data->getUTF8Size());
 
          // One byte for length of the string
          buf[0] = len;
@@ -226,15 +251,7 @@ namespace parties {
         memcpy(&(prefix.origAddress), buf+2,  4);
         memcpy(&(prefix.destAddress), buf+6,  4);
         memcpy(&(prefix.hopCount),    buf+10, 1);
-        int statusAvailable = buf[PREFIX_LENGTH];
         
-        if (statusAvailable) {
-            int len = buf[PREFIX_LENGTH+1];
-            
-            memcpy(&status, buf+PREFIX_LENGTH+1, len);
-             
-        }
-
         if (prefix.origAddress == microbit_serial_number()) return;
 
         // Only handle the packet if it's not been seen (and thus handled) already.
@@ -243,6 +260,7 @@ namespace parties {
             switch(prefix.type)
             {
                 case PacketType::HEARTBEAT:
+                    receiveHeartbeat(prefix, buf);
                     rebound(prefix, buf);
                     break;
 
@@ -300,17 +318,11 @@ namespace parties {
         prefix.destAddress  = 0;
         prefix.hopCount     = 1;
 
-
-        int stringlen = 1; 
         setPacketPrefix(buf, prefix);
-        if (status != nullptr) {
-            buf[PREFIX_LENGTH] = 1; //indicates that there's a status
-            stringLen += copyStringValue(buf + PREFIX_LENGTH+1, status.value, MAX_PAYLOAD_LENGTH  - 2);
-        }
-        else {
-            buf[PREFIX_LENGTH] = 0; //indicates that there's no status 
-        }
-        uBit.radio.datagram.send(buf, PREFIX_LENGTH+stringlen);
+
+        uint8_t stringLen = copyStringValue(buf + PREFIX_LENGTH, status, MAX_PAYLOAD_LENGTH  - 1);
+        
+        uBit.radio.datagram.send(buf, PREFIX_LENGTH + stringLen);
     }
 
     void sendString(String msg, PacketType packetType, uint32_t destAddress) {
