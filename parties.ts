@@ -5,7 +5,12 @@
 namespace parties {
 
     export class PartyMember {
-        public constructor (public status: number, public address: number) {}
+        public status: number;
+        public address: number;
+        public constructor (status: number, address: number) {
+            this.status = status;
+            this.address = address;
+        }
     }
 
     let stringCallback: (s: string) => void = () => {};
