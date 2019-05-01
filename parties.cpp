@@ -228,14 +228,15 @@ namespace parties {
         lastPayloadType = PayloadType::NUM;
     }    
 
+     // disabled getUTF8* just for presentation tonight
      uint8_t copyStringValue(uint8_t* buf, String data, uint8_t maxLength) {
-         uint8_t len = min_(maxLength, data->getUTF8Size());
-
+         //uint8_t len = min_(maxLength, data->getUTF8Size());
+         uint8_t len = 0;
          // One byte for length of the string
          buf[0] = len;
 
          if (len > 0) {
-             memcpy(buf + 1, data->getUTF8Data(), len);
+             // memcpy(buf + 1, data->getUTF8Data(), len);
          }
          return len + 1;
      }
