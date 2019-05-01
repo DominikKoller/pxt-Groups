@@ -7,24 +7,6 @@ namespace parties {
     export class PartyMember {
         public constructor (public status: number, public address: number) {}
     }
-    //TEMP
-    
-    let counter: int32 = 0;
-
-    input.onButtonPressed(Button.B, () => {
-        let s = randomPartyMember().status;
-        basic.showNumber(s);
-        parties.setStatus(s);
-        basic.showString("C");
-    })
-
-    input.onButtonPressed(Button.A, () => {
-        let r = 0;
-        if(Math.random() > 0.5) r = 1;
-        parties.setStatus(r);
-        basic.showNumber(r);
-    })
-    //end TEMP
 
     let stringCallback: (s: string) => void = () => {};
     let numberCallback: (n: number) => void = () => {};
@@ -74,22 +56,11 @@ namespace parties {
     //% weight=60
     //% blockId=random_party_member block="random party member"
     export function randomPartyMember(): PartyMember {
-        let status = -8;
-        let address = -1;
-
-        let s = parties.partySize();
-        if (s > 0) {
-            let i = Math.randomRange(0, s-1);
-            let newStatus = statusOfPartyMember(i);
-            let newAddress = addressOfPartyMember(i);
-
-            if(newStatus != undefined && newAddress != undefined){
-                status = newStatus;
-                address = newAddress;
-            }            
-            if(status == -1) status = -9; 
-        }
-        return new PartyMember(status, address);
+        let i = Math.randomRange(0, parties.partySize()-1);
+        return new PartyMember(
+            statusOfPartyMember(i),
+            addressOfPartyMember(i)
+            );
     }
 
     // basic.forever will call inBackground with while(true) and basic.pause(20)
