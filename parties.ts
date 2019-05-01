@@ -28,8 +28,7 @@ namespace parties {
         numberCallback = cb;
     }
 
-    //% block
-    export function joinParty(name: string) { }
+    //export function joinParty(name: string) { }
 
     /**
      * A list of all party members
