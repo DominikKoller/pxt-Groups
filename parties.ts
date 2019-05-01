@@ -5,7 +5,7 @@
 namespace parties {
 
     export class PartyMember {
-        public constructor (public status: string, public address: number) {}
+        public constructor (public status: number, public address: number) {}
     }
     //TEMP
     
@@ -13,16 +13,16 @@ namespace parties {
 
     input.onButtonPressed(Button.B, () => {
         let s = randomPartyMember().status;
-        basic.showString(s);
+        basic.showNumber(s);
         parties.setStatus(s);
         basic.showString("C");
     })
 
     input.onButtonPressed(Button.A, () => {
-        let r = "A";
-        if(Math.random() > 0.5) r = "B";
+        let r = 0;
+        if(Math.random() > 0.5) r = 1;
         parties.setStatus(r);
-        basic.showString(r);
+        basic.showNumber(r);
     })
     //end TEMP
 
@@ -74,7 +74,7 @@ namespace parties {
     //% weight=60
     //% blockId=random_party_member block="random party member"
     export function randomPartyMember(): PartyMember {
-        let status = "";
+        let status = -8;
         let address = -1;
 
         let s = parties.partySize();
@@ -86,7 +86,8 @@ namespace parties {
             if(newStatus != undefined && newAddress != undefined){
                 status = newStatus;
                 address = newAddress;
-            }                
+            }            
+            if(status == -1) status = -9; 
         }
         return new PartyMember(status, address);
     }

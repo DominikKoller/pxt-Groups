@@ -1,6 +1,7 @@
 #include "pxt.h"
 #include <algorithm>
 #include <vector>
+#include <string.h>
 using namespace pxt;
 
 #define MAX_PAYLOAD_LENGTH 18
@@ -40,7 +41,7 @@ struct PartyMember {
     uint32_t address;
     uint32_t lastSeen;
     uint8_t lastMessageId;
-    String status;
+    uint32_t status;
 };
 
 struct Payload { String stringValue; int numValue; };
@@ -62,24 +63,23 @@ namespace parties {
     Payload lastPayload;
     PayloadType lastPayloadType = NONE;
 
-    String status = mkString("", 0);
+    uint32_t status = 0;
 
     /**
      * Set your own status, for others to see.
      */
     //% weight=60
     //% blockId=set_status block="Set my status to %s"
-    void setStatus(String s) { 
-        decrRC(status);
-        status = s; 
-        }
+    void setStatus(TNumber s) { 
+        status = toInt(s);
+    }
 
     /**
      * Your own current status.
      */
     //% weight=60
     //% blockId=get_status block="my status"
-    String getStatus() { incrRC(status); return status; }
+    int getStatus() { return status; }
     
     int radioEnable() {
         int r = uBit.radio.enable();
@@ -171,8 +171,7 @@ namespace parties {
         newMember.address = prefix.origAddress;
         newMember.lastSeen = system_timer_current_time();
         newMember.lastMessageId = prefix.messageId;
-        newMember.status = mkString("", 0);
-        incrRC(newMember.status);
+        newMember.status = 0;
         partyTable.push_back(newMember);
     }
 
@@ -218,10 +217,7 @@ namespace parties {
             std::find_if (partyTable.begin(), partyTable.end(), hasAddress(prefix.origAddress));
 
         if (sender != partyTable.end()) {
-            Payload p = getStringPayload(buf + PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
-            decrRC(sender->status);
-            sender->status = p.stringValue;
-            incrRC(sender->status);
+            memcpy(&(sender->status), buf + PREFIX_LENGTH, sizeof(int));
         }
     }
 
@@ -327,9 +323,9 @@ namespace parties {
 
         setPacketPrefix(buf, prefix);
 
-        uint8_t stringLen = copyStringValue(buf + PREFIX_LENGTH, status, MAX_PAYLOAD_LENGTH  - 1);
+        memcpy(buf + PREFIX_LENGTH, &status, sizeof(int));
         
-        uBit.radio.datagram.send(buf, PREFIX_LENGTH + stringLen);
+        uBit.radio.datagram.send(buf, PREFIX_LENGTH + sizeof(int));
     }
 
     void sendString(String msg, PacketType packetType, uint32_t destAddress) {
@@ -445,9 +441,9 @@ namespace parties {
     //%
     uint32_t addressOfPartyMember(TNumber i) {
         int index = toInt(i);
-        if(index >= 0 && index < partyTable.size())
-            return partyTable[index].address;
-        else return -1;
+        if(radioEnable() != MICROBIT_OK || index < 0 || index >= partyTable.size())
+            return -1;
+        return partyTable[index].address;
     }
 
     /**
@@ -455,16 +451,11 @@ namespace parties {
      * This is a workaround as we can neither pass lists nor structs to TS
      */
     //%
-    String statusOfPartyMember(TNumber i) {
+    int statusOfPartyMember(TNumber i) {
         int index = toInt(i);
-        if(radioEnable() == MICROBIT_OK && 
-            index >= 0 && 
-            index < partyTable.size() &&
-            NULL != partyTable[index].status) { 
-                incrRC(partyTable[index].status);
-                return partyTable[index].status;
-        }
-        else return mkString("", 0);
+        if(radioEnable() != MICROBIT_OK || index < 0 || index >= partyTable.size())
+            return -1;
+         return partyTable[index].status;
     }
 
     /**
