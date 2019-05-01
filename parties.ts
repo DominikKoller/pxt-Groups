@@ -63,6 +63,12 @@ namespace parties {
             );
     }
 
+    //% block="status of %member"
+    //% blockId=status_of
+    export function statusOf(member: PartyMember): number {
+        return member.status;
+    }
+
     // basic.forever will call inBackground with while(true) and basic.pause(20)
     // using control.inBackground to avoid that
     // see https://makecode.microbit.org/device/reactive
