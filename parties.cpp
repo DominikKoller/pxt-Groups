@@ -3,7 +3,7 @@
 #include <vector>
 using namespace pxt;
 
-#define MAX_PAYLOAD_LENGTH 19 
+#define MAX_PAYLOAD_LENGTH 18
 #define PREFIX_LENGTH 11
 
 #define MAX_HOP_COUNT 1
@@ -69,14 +69,17 @@ namespace parties {
      */
     //% weight=60
     //% blockId=set_status block="Set my status to %s"
-    void setStatus(String s) { status = s; }
+    void setStatus(String s) { 
+        decrRC(status);
+        status = s; 
+        }
 
     /**
      * Your own current status.
      */
     //% weight=60
     //% blockId=get_status block="my status"
-    String getStatus() { return status; }
+    String getStatus() { incrRC(status); return status; }
     
     int radioEnable() {
         int r = uBit.radio.enable();
@@ -168,6 +171,8 @@ namespace parties {
         newMember.address = prefix.origAddress;
         newMember.lastSeen = system_timer_current_time();
         newMember.lastMessageId = prefix.messageId;
+        newMember.status = mkString("", 0);
+        incrRC(newMember.status);
         partyTable.push_back(newMember);
     }
 
@@ -214,7 +219,9 @@ namespace parties {
 
         if (sender != partyTable.end()) {
             Payload p = getStringPayload(buf + PREFIX_LENGTH, MAX_PAYLOAD_LENGTH - 1);
+            decrRC(sender->status);
             sender->status = p.stringValue;
+            incrRC(sender->status);
         }
     }
 
@@ -430,15 +437,34 @@ namespace parties {
     //% blockId=party_size block="party size"
     int partySize() { return partyTable.size(); }
 
+
     /**
-     * Random Party Member
+     * Get the address of the party member at the given index
+     * This is a workaround as we can neither pass lists nor structs to TS
      */
-    //% weight=60
-    //% blockId=random_party_member block="random party member"
-    uint32_t randomPartyMember() {
-        if(partyTable.size() == 0)
-            return -1;
-        else return partyTable[uBit.random(partyTable.size())].address;
+    //%
+    uint32_t addressOfPartyMember(TNumber i) {
+        int index = toInt(i);
+        if(index >= 0 && index < partyTable.size())
+            return partyTable[index].address;
+        else return -1;
+    }
+
+    /**
+     * Get the status of the party member at the given index
+     * This is a workaround as we can neither pass lists nor structs to TS
+     */
+    //%
+    String statusOfPartyMember(TNumber i) {
+        int index = toInt(i);
+        if(radioEnable() == MICROBIT_OK && 
+            index >= 0 && 
+            index < partyTable.size() &&
+            NULL != partyTable[index].status) { 
+                incrRC(partyTable[index].status);
+                return partyTable[index].status;
+        }
+        else return mkString("", 0);
     }
 
     /**
@@ -469,4 +495,5 @@ namespace parties {
         if (radioEnable() != MICROBIT_OK) return 0;
         return message;
     }
+
 }

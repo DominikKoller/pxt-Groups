@@ -4,6 +4,28 @@
 //% color=#00d3ea weight=100 icon="\uf2b5"
 namespace parties {
 
+    export class PartyMember {
+        public constructor (public status: string, public address: number) {}
+    }
+    //TEMP
+    
+    let counter: int32 = 0;
+
+    input.onButtonPressed(Button.B, () => {
+        let s = randomPartyMember().status;
+        basic.showString(s);
+        parties.setStatus(s);
+        basic.showString("C");
+    })
+
+    input.onButtonPressed(Button.A, () => {
+        let r = "A";
+        if(Math.random() > 0.5) r = "B";
+        parties.setStatus(r);
+        basic.showString(r);
+    })
+    //end TEMP
+
     let stringCallback: (s: string) => void = () => {};
     let numberCallback: (n: number) => void = () => {};
 
@@ -30,6 +52,45 @@ namespace parties {
     //% block
     export function joinParty(name: string) { }
 
+    /**
+     * A list of all party members
+     */
+    //% weight=60
+    //% blockId=all_party_members block="all party members"
+    export function allPartyMembers(): PartyMember[] {
+        var result = [];
+        for(let i=0; i < parties.partySize(); i++){
+            result.push( new PartyMember(
+                parties.statusOfPartyMember(i), 
+                parties.addressOfPartyMember(i)
+            ));
+        }
+        return result;
+    }
+
+    /**
+     * Random Party Member
+     */
+    //% weight=60
+    //% blockId=random_party_member block="random party member"
+    export function randomPartyMember(): PartyMember {
+        let status = "";
+        let address = -1;
+
+        let s = parties.partySize();
+        if (s > 0) {
+            let i = Math.randomRange(0, s-1);
+            let newStatus = statusOfPartyMember(i);
+            let newAddress = addressOfPartyMember(i);
+
+            if(newStatus != undefined && newAddress != undefined){
+                status = newStatus;
+                address = newAddress;
+            }                
+        }
+        return new PartyMember(status, address);
+    }
+
     // basic.forever will call inBackground with while(true) and basic.pause(20)
     // using control.inBackground to avoid that
     // see https://makecode.microbit.org/device/reactive
@@ -54,4 +115,5 @@ namespace parties {
             default: break;
         }
     });
+
 }
