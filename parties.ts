@@ -69,6 +69,24 @@ namespace parties {
         return member.status;
     }
 
+    /**
+     * Send a string to the micro:bit with the specified address.
+     */
+    //% weight=60
+    //% blockId=party_unicast_string block="Send %message to %destAddress"
+    export function unicastString(message: string, member: PartyMember){
+        unicastStringAddress(message, member.address);
+    }
+
+    /**
+     * Send a number to the micro:bit with the specified address
+     */
+    //% weight=60
+    //% blockId=party_unicast_number block="Send %number to %destAddress"
+    export function unicastNumber(message: number, member: PartyMember){
+        unicastNumberAddress(message, member.address);
+    }
+
     // basic.forever will call inBackground with while(true) and basic.pause(20)
     // using control.inBackground to avoid that
     // see https://makecode.microbit.org/device/reactive

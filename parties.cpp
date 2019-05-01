@@ -358,11 +358,11 @@ namespace parties {
     }
 
     /**
-     * Send a string to the micro:bit with the specified address
+     * Send a string to the micro:bit with the specified address.
+     * duplicate to TS because we cannot use PartyMember type as address.
      */
-    //% weight=60
-    //% blockId=party_unicast_string block="Send %message to %destAddress"
-    void unicastString(String message, uint32_t destAddress) {
+    //%
+    void unicastStringAddress(String message, uint32_t destAddress) {
         sendString(message, PacketType::UNICAST_STRING, destAddress);
     }
 
@@ -397,10 +397,10 @@ namespace parties {
 
     /**
      * Send a number to the micro:bit with the specified address
+     * duplicate to TS because we cannot use PartyMember type as address.
      */
-    //% weight=60
-    //% blockId=party_unicast_number block="Send %number to %destAddress"
-    void unicastNumber(TNumber number, TNumber destAddress) {
+    //%
+    void unicastNumberAddress(TNumber number, TNumber destAddress) {
         sendNumber(toInt(number), PacketType::UNICAST_NUMBER, toInt(destAddress));
     }
 
