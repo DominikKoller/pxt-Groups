@@ -351,7 +351,8 @@ namespace parties {
     /**
      * Send a string to all micro:bits in the party.
      */
-    //%
+    //% weight=60
+    //% blockId=party_broadcast_string block="Send %message to all party members"
     void broadcastString(String message) {
         sendString(message, PacketType::BROADCAST_STRING, 0);
     }
@@ -359,7 +360,8 @@ namespace parties {
     /**
      * Send a string to the micro:bit with the specified address
      */
-    //%
+    //% weight=60
+    //% blockId=party_unicast_string block="Send %message to %destAddress"
     void unicastString(String message, uint32_t destAddress) {
         sendString(message, PacketType::UNICAST_STRING, destAddress);
     }
