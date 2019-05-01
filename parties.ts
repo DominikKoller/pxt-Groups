@@ -14,12 +14,9 @@ namespace parties {
     /**
      * Registers code to run when the radio receives a string in the party
      */
-    //% block="on string received"
-    //% blockId=party_on_string
-    //% draggableParameters=reporter
-    export function onStringReceived(c: (receivedString: string) => void) {
-        stringCallback = c;
-    }
+    // export function onStringReceived(c: (receivedString: string) => void) {
+    //     stringCallback = c;
+    // }
 
     /**
      * Registers code to run when the radio receives a number in the party
@@ -72,11 +69,9 @@ namespace parties {
     /**
      * Send a string to the micro:bit with the specified address.
      */
-    //% weight=60
-    //% blockId=party_unicast_string block="Send %message to %destAddress"
-    export function unicastString(message: string, member: PartyMember){
-        unicastStringAddress(message, member.address);
-    }
+    // export function unicastString(message: string, member: PartyMember){
+    //     unicastStringAddress(message, member.address);
+    // }
 
     /**
      * Send a number to the micro:bit with the specified address
