@@ -41,7 +41,7 @@ namespace parties {
     //% weight=60
     //% blockId=all_party_members block="all party members"
     export function allPartyMembers(): PartyMember[] {
-        let result = [];
+        let result: PartyMember[] = [];
         for(let i=0; i < parties.partySize(); i++){
             result.push( new PartyMember(
                 parties.statusOfPartyMember(i), 
