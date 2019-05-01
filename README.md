@@ -1,17 +1,20 @@
 # pxt-groups
 
+This package helps you build multiplayer games with the microbit.
+All microbits using this package will be able to:
+
+Get a list of all other microbits in the area - we call them 'Party Members'.
+You can send messages to every Party Member individually, or to all at once.
+You can set your own status, and see the current status of all other Party Members at any time.
 
 
-## TODO
+The low-level part of this is undocumented so far, here's a rough overview:
+Every Member sends out a heartbeat at a given frequency, containing amongst other things the senders' address (microbit serial number) and a integer that is the current status of the Member (user-chosen).
 
-- [ ] Add a reference for your blocks here
-- [ ] Add "icon.png" image (300x200) in the root folder
-- [ ] Add "- beta" to the GitHub project description if you are still iterating it.
-- [ ] Turn on your automated build on https://travis-ci.org
-- [ ] Use "pxt bump" to create a tagged release on GitHub
-- [ ] Get your package reviewed and approved https://makecode.microbit.org/packages/approval
+A Member keeps a list of all Members it has received messages from.
+Upon receiving a heartbeat, a Member will update that table. The table is regularly cleared of old entries, ie of Members that haven't been sending messages for a while.
 
-Read more at https://makecode.microbit.org/packages/build-your-own
+Sending messages to a specific Member works by putting a Destination Address into the message. Only the member with this address will receive the message.
 
 ## License
 
@@ -24,22 +27,39 @@ Read more at https://makecode.microbit.org/packages/build-your-own
 
 ## API
 
-* joinParty (partyName: string): boolean
+* setStatus (status: number)
  ```
- Looks for an existing party called partyName. Creates a party with name partyName if it doesn't already exist and then joins it.
+ Set your own status, for others to see.
  ```
-* randomPartyMember: number
- 
+* getStatus (): number
  ```
- returns the µBit serial number of a random device in the party, which is a unique identifier for that microbit. 
+ Your own current status, as last set by setStatus.
  ```
-* oldestPartyMember: number
- 
+* broadcastNumber(value: number)
  ```
- returns the µBit serial number of the device in the party which has stayed in the party the longest. NB* the time spent in the party is reset to 0 once device leaves.
- 
+Sends a number to all Party Members.
  ```
- * send(someValue: Any, partyMember: number)
+* unicastNumber(value: number, member: PartyMember)
  ```
- Extends the send function so that now the message may be sent to a single, specified party member.
+Sends a number to a Party Member
  ```
+* partySize(): number
+ ```
+Returns the current size of the party (not including yourself) 
+ ```
+* onNumberReceived(cb: (receivedNo: number) => void)
+```
+Registers code to run when the radio receives a number in the party
+```
+* allPartyMembers(): PartyMember[]
+```
+A list of all current party members
+```
+* randomPartyMember(): PartyMember
+```
+A random current party member
+```
+* statusOf(member: PartyMember): number
+```
+The status of the given party member
+```
