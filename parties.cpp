@@ -186,12 +186,16 @@ namespace parties {
             // Sender not recognised, so create a new entry for them in partyTable.
             addNewPartyMember(prefix);
             return false;
-        }
-        else if (prefix.messageId > sender->lastMessageId) {
-            // We haven't seen this message before, so update partyTable.
-            sender->lastMessageId = prefix.messageId;
-            sender->lastSeen = system_timer_current_time();
-            return false;
+        } else {
+            // Allow the message ID to wrap around if it is close to the last value
+            // Assumes that the message ID is stored in a single byte (ie, 0 <= id < 256)
+            uint8_t diff = prefix.messageId - sender->lastMessageId;
+            if (diff != 0 && diff < 128) {
+                // We haven't seen this message before, so update partyTable.
+                sender->lastMessageId = prefix.messageId;
+                sender->lastSeen = system_timer_current_time();
+                return false;
+            }
         }
         return true;
     }
